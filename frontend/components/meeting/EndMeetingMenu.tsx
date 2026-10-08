@@ -24,7 +24,7 @@ export function EndMeetingMenu({ isHost, onLeave, onEndForAll }: EndMeetingMenuP
       tone="dark"
       className="w-64 p-3"
       trigger={
-        <Button variant="danger" size="sm" className="h-9 px-4" onClick={() => setOpen(!open)}>
+        <Button variant="danger" size="sm" className="h-9 px-3 sm:px-4" onClick={() => setOpen(!open)}>
           {isHost ? "End" : "Leave"}
         </Button>
       }

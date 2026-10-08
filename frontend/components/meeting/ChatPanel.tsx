@@ -54,7 +54,13 @@ export function ChatPanel({ messages, selfId, onSend, onClose }: ChatPanelProps)
               aria-label="Chat message"
               className="min-h-0 flex-1 resize-none bg-transparent px-1 text-sm text-white outline-none placeholder:text-room-muted"
             />
-            <button type="button" onClick={send} disabled={!draft.trim()} aria-label="Send message" className="rounded-md p-1.5 text-zoom-blue hover:bg-room-hover disabled:text-room-muted">
+            <button
+              type="button"
+              onClick={send}
+              disabled={!draft.trim()}
+              aria-label="Send message"
+              className="rounded-md p-1.5 text-zoom-blue hover:bg-room-hover disabled:text-room-muted"
+            >
               <SendHorizontal className="h-4 w-4" />
             </button>
           </div>
@@ -62,7 +68,9 @@ export function ChatPanel({ messages, selfId, onSend, onClose }: ChatPanelProps)
       }
     >
       {messages.length === 0 ? (
-        <p className="px-6 py-10 text-center text-sm text-room-muted">Messages addressed to &quot;Everyone&quot; will appear here.</p>
+        <p className="px-6 py-10 text-center text-sm text-room-muted">
+          Messages addressed to &quot;Everyone&quot; will appear here.
+        </p>
       ) : (
         <ul className="space-y-3 px-4 py-3">
           {messages.map((message, index) => {

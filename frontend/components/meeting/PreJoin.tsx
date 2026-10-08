@@ -47,7 +47,9 @@ export function PreJoin({ meeting, media, defaultName, needsPasscode, joining, e
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-3">
               <Avatar name={name || "?"} size="xl" className="rounded-full" />
-              <p className="text-sm text-room-muted">{media.ready ? "Your camera is off" : "Waiting for camera and microphone access…"}</p>
+              <p className="text-sm text-room-muted">
+                {media.ready ? "Your camera is off" : "Waiting for camera and microphone access…"}
+              </p>
             </div>
           )}
           <div className="absolute inset-x-0 bottom-4 flex justify-center gap-3">
@@ -72,9 +74,17 @@ export function PreJoin({ meeting, media, defaultName, needsPasscode, joining, e
             <p className="mt-1 text-sm text-room-muted">Meeting ID: {formatMeetingId(meeting.meeting_code)}</p>
           </div>
           <Input tone="dark" label="Your name" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} autoFocus />
-          {needsPasscode && <Input tone="dark" label="Meeting passcode" value={passcode} onChange={(e) => setPasscode(e.target.value)} />}
+          {needsPasscode && (
+            <Input tone="dark" label="Meeting passcode" value={passcode} onChange={(e) => setPasscode(e.target.value)} />
+          )}
           {(error || media.error) && (
-            <p role="alert" className={cn("rounded-lg px-3 py-2 text-sm", error ? "bg-red-500/15 text-red-300" : "bg-amber-500/15 text-amber-200")}>
+            <p
+              role="alert"
+              className={cn(
+                "rounded-lg px-3 py-2 text-sm",
+                error ? "bg-red-500/15 text-red-300" : "bg-amber-500/15 text-amber-200",
+              )}
+            >
               {error ?? media.error}
             </p>
           )}

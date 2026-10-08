@@ -1,5 +1,5 @@
 // WebSocket protocol shared with backend/app/services/realtime_service.py.
-import type { ChatMessage, Meeting, RoomParticipant } from "./index";
+import type { ChatMessage, Meeting, Participant, RoomParticipant } from "./index";
 
 /** WebRTC negotiation payload relayed verbatim by the server. */
 export type SignalData =
@@ -15,8 +15,11 @@ export type ServerMessage =
       self_id: number;
       meeting: Meeting;
       participants: RoomParticipant[];
+      waiting: Participant[];
       messages: ChatMessage[];
     }
+  | { type: "waiting" }
+  | { type: "waiting-room"; participants: Participant[] }
   | { type: "participant-joined"; participant: RoomParticipant }
   | { type: "participant-left"; participant_id: number }
   | { type: "participant-updated"; participant: RoomParticipant }

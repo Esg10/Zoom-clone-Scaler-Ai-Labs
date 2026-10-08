@@ -3,18 +3,21 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import type { RoomParticipant } from "@/types";
+import type { Participant, RoomParticipant } from "@/types";
 import { ParticipantRow } from "./ParticipantRow";
 import { SidePanel } from "./SidePanel";
+import { WaitingRoomList } from "./WaitingRoomList";
 
 interface ParticipantsPanelProps {
   participants: RoomParticipant[];
+  waiting: Participant[];
   selfId: number;
   canModerate: boolean;
   onClose: () => void;
   onInvite: () => void;
   onMuteAll: () => void;
   onMute: (id: number) => void;
+  onAdmit: (id: number) => void;
   onRemove: (id: number) => Promise<void>;
 }
 
@@ -50,6 +53,9 @@ export function ParticipantsPanel(props: ParticipantsPanelProps) {
         </div>
       }
     >
+      {canModerate && (
+        <WaitingRoomList waiting={props.waiting} onAdmit={props.onAdmit} onRemove={(id) => void props.onRemove(id)} />
+      )}
       <ul className="py-2">
         {sorted.map((participant) => (
           <ParticipantRow

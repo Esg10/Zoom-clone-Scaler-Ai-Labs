@@ -39,12 +39,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-24 z-[70] flex flex-col items-center gap-2 px-4">
+      <div
+        aria-live="polite"
+        className="pointer-events-none fixed inset-x-0 bottom-24 z-[70] flex flex-col items-center gap-2 px-4"
+      >
         {toasts.map((toast) => (
           <div
             key={toast.id}
             role="status"
-            className={cn("flex animate-slide-up items-center gap-2 rounded-lg bg-[#2b2b2b] px-4 py-2.5 text-sm text-white shadow-popover")}
+            className={cn(
+              "flex animate-slide-up items-center gap-2 rounded-lg bg-[#2b2b2b] px-4 py-2.5 text-sm text-white shadow-popover",
+            )}
           >
             {ICONS[toast.variant]}
             {toast.message}

@@ -9,9 +9,7 @@
 // swaps the outgoing track with `replaceTrack`, so no renegotiation is needed.
 import type { SignalData } from "@/types/realtime";
 
-const ICE_SERVERS: RTCIceServer[] = [
-  { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
-];
+const ICE_SERVERS: RTCIceServer[] = [{ urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }];
 
 type Kind = "audio" | "video";
 

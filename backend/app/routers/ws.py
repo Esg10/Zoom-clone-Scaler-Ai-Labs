@@ -28,7 +28,7 @@ async def meeting_socket(websocket: WebSocket, code: str, participant_id: int):
         return
 
     code = meeting.meeting_code
-    await manager.connect(code, participant.id, websocket)
+    await manager.connect(code, participant.id, websocket, waiting=not participant.is_admitted)
     try:
         await realtime_service.on_connect(db, meeting, participant)
         while True:

@@ -8,8 +8,9 @@ Client -> server message types:
     reaction      {emoji}
 
 Server -> client message types:
-    welcome, participant-joined, participant-left, participant-updated, signal,
-    screen-share, chat, reaction, muted-by-host, removed, meeting-ended, error
+    welcome, waiting, waiting-room, participant-joined, participant-left,
+    participant-updated, signal, screen-share, chat, reaction, muted-by-host,
+    removed, meeting-ended, error
 """
 import logging
 from typing import Any, Dict, List
@@ -42,15 +43,31 @@ def chat_payload(message) -> Dict[str, Any]:
 
 # ---------- Connection lifecycle ----------
 
+def _waiting_payload(db: Session, meeting: Meeting) -> List[Dict[str, Any]]:
+    waiting = participant_service.list_present(db, meeting, manager.lobby_ids(meeting.meeting_code))
+    return [ParticipantOut.model_validate(p).model_dump(mode="json") for p in waiting]
+
+
+async def broadcast_waiting_room(db: Session, meeting: Meeting) -> None:
+    """Send the current waiting-room list to everyone in the room (hosts render it)."""
+    await manager.broadcast(meeting.meeting_code, {"type": "waiting-room", "participants": _waiting_payload(db, meeting)})
+
+
 async def on_connect(db: Session, meeting: Meeting, participant: Participant) -> None:
     code = meeting.meeting_code
     participant_service.mark_present(db, participant)
+    if not participant.is_admitted:
+        await manager.send(code, participant.id, {"type": "waiting"})
+        await broadcast_waiting_room(db, meeting)
+        return
+
     present = participant_service.list_present(db, meeting, manager.connected_ids(code))
     await manager.send(code, participant.id, {
         "type": "welcome",
         "self_id": participant.id,
         "meeting": MeetingOut.model_validate(meeting).model_dump(mode="json"),
         "participants": [participant_payload(code, p) for p in present],
+        "waiting": _waiting_payload(db, meeting),
         "messages": [chat_payload(m) for m in participant_service.recent_chat(db, meeting)],
     })
     await manager.broadcast(
@@ -64,7 +81,10 @@ async def on_disconnect(db: Session, meeting: Meeting, participant: Participant)
     db.refresh(participant)
     if participant.left_at is None:
         participant_service.mark_left(db, participant)
-    await manager.broadcast(code, {"type": "participant-left", "participant_id": participant.id})
+    if participant.is_admitted:
+        await manager.broadcast(code, {"type": "participant-left", "participant_id": participant.id})
+    else:
+        await broadcast_waiting_room(db, meeting)
     if manager.is_empty(code):
         manager.schedule_auto_end(code, EMPTY_MEETING_GRACE_SECONDS, lambda: _auto_end(code))
 
@@ -76,6 +96,7 @@ async def _auto_end(code: str) -> None:
         if meeting.status == MeetingStatus.live:
             meeting_service.end_meeting(db, meeting)
             logger.info("Auto-ended empty meeting %s", code)
+            await manager.close_room(code, {"type": "meeting-ended"})  # releases anyone still waiting
     finally:
         db.close()
 
@@ -83,6 +104,12 @@ async def _auto_end(code: str) -> None:
 # ---------- Client messages ----------
 
 async def handle_message(db: Session, code: str, sender: Participant, message: Dict[str, Any]) -> None:
+    if not manager.is_admitted(code, sender.id):
+        # Waiting-room participants may only update their mic/camera state
+        # (persisted, not broadcast) so it's correct once they're admitted.
+        if message.get("type") == "media-state":
+            participant_service.set_media_state(db, sender, message.get("is_muted"), message.get("is_video_on"))
+        return
     handler = _HANDLERS.get(message.get("type"))
     if handler is None:
         raise AppError(400, "unknown_message", f"Unknown message type: {message.get('type')}")
@@ -137,9 +164,21 @@ async def notify_muted(code: str, participant_ids: List[int]) -> None:
     await manager.broadcast(code, {"type": "muted-by-host", "participant_ids": participant_ids})
 
 
-async def notify_removed(code: str, participant_id: int) -> None:
+async def notify_removed(db: Session, meeting: Meeting, participant_id: int) -> None:
+    code = meeting.meeting_code
+    was_admitted = manager.is_admitted(code, participant_id)
     await manager.kick(code, participant_id, {"type": "removed"})
-    await manager.broadcast(code, {"type": "participant-left", "participant_id": participant_id})
+    if was_admitted:
+        await manager.broadcast(code, {"type": "participant-left", "participant_id": participant_id})
+    else:
+        await broadcast_waiting_room(db, meeting)
+
+
+async def admit(db: Session, meeting: Meeting, participant: Participant) -> None:
+    """Move a waiting participant into the room and run the normal join sequence."""
+    if manager.admit(meeting.meeting_code, participant.id):
+        await on_connect(db, meeting, participant)
+    await broadcast_waiting_room(db, meeting)
 
 
 async def notify_meeting_ended(code: str) -> None:

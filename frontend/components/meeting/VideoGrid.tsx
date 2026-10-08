@@ -32,7 +32,10 @@ export function VideoGrid({ tiles, activeSpeakerId }: VideoGridProps) {
   return (
     <div ref={ref} className="flex h-full w-full items-center justify-center overflow-hidden">
       {width > 0 && (
-        <div className="flex flex-wrap content-center justify-center" style={{ gap: GAP, width: cols * tileWidth + GAP * (cols - 1) }}>
+        <div
+          className="flex flex-wrap content-center justify-center"
+          style={{ gap: GAP, width: cols * tileWidth + GAP * (cols - 1) }}
+        >
           {tiles.map((tile) => (
             <VideoTile
               key={tile.id}

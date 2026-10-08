@@ -101,6 +101,8 @@ class Participant(Base):
     is_muted: Mapped[bool] = mapped_column(Boolean, default=False)
     is_video_on: Mapped[bool] = mapped_column(Boolean, default=True)
     is_removed: Mapped[bool] = mapped_column(Boolean, default=False)
+    # False while the participant sits in the waiting room (waiting_room_enabled meetings).
+    is_admitted: Mapped[bool] = mapped_column(Boolean, default=True)
 
     meeting: Mapped[Meeting] = relationship(back_populates="participants")
     user: Mapped[Optional[User]] = relationship(back_populates="participations")

@@ -1,7 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Circle, Mic, MicOff, MonitorUp, MoreHorizontal, ShieldCheck, SmilePlus, Users, Video, VideoOff, MessageSquare } from "lucide-react";
+import {
+  Circle,
+  Mic,
+  MicOff,
+  MonitorUp,
+  MoreHorizontal,
+  ShieldCheck,
+  SmilePlus,
+  Users,
+  Video,
+  VideoOff,
+  MessageSquare,
+} from "lucide-react";
 import { Popover } from "@/components/ui/Popover";
 import type { MediaControls } from "@/hooks/useMediaDevices";
 import type { Meeting } from "@/types";
@@ -41,16 +53,29 @@ export function ControlBar(props: ControlBarProps) {
   const isSharing = Boolean(media.screenTrack);
 
   // A popover-backed toolbar button (Security, Reactions, More).
-  const popoverButton = (name: Exclude<typeof popover, null>, button: React.ReactNode, content: React.ReactNode, className = "") => (
+  const popoverButton = (
+    name: Exclude<typeof popover, null>,
+    button: React.ReactNode,
+    content: React.ReactNode,
+    className = "",
+  ) => (
     <div className={className}>
-      <Popover open={popover === name} onOpenChange={(open) => setPopover(open ? name : null)} side="top" align="center" tone="dark" trigger={button}>
+      <Popover
+        open={popover === name}
+        onOpenChange={(open) => setPopover(open ? name : null)}
+        side="top"
+        align={name === "more" ? "end" : "center"}
+        tone="dark"
+        className={name === "more" ? "w-64" : undefined}
+        trigger={button}
+      >
         {content}
       </Popover>
     </div>
   );
 
   return (
-    <footer className="flex h-[68px] shrink-0 items-center justify-between gap-1 bg-room-bg px-2 sm:px-4">
+    <footer className="flex h-[68px] shrink-0 items-center justify-between gap-0.5 bg-room-bg px-1 sm:gap-1 sm:px-4">
       <div className="flex items-center">
         <ControlButton
           icon={media.audioEnabled ? <Mic className={ICON} /> : <MicOff className={`${ICON} text-zoom-red`} />}
@@ -59,7 +84,10 @@ export function ControlBar(props: ControlBarProps) {
           onClick={() => void media.setMuted(media.audioEnabled)}
           menu={() => (
             <DeviceMenu
-              sections={[{ title: "Select a Microphone", kind: "audioinput" }, { title: "Select a Speaker", kind: "audiooutput" }]}
+              sections={[
+                { title: "Select a Microphone", kind: "audioinput" },
+                { title: "Select a Speaker", kind: "audiooutput" },
+              ]}
               devices={media.devices}
               selected={media.selected}
               onSelect={media.selectDevice}
@@ -72,7 +100,12 @@ export function ControlBar(props: ControlBarProps) {
           shortcut="Alt+V"
           onClick={() => void media.setVideoOn(!media.videoEnabled)}
           menu={() => (
-            <DeviceMenu sections={[{ title: "Select a Camera", kind: "videoinput" }]} devices={media.devices} selected={media.selected} onSelect={media.selectDevice} />
+            <DeviceMenu
+              sections={[{ title: "Select a Camera", kind: "videoinput" }]}
+              devices={media.devices}
+              selected={media.selected}
+              onSelect={media.selectDevice}
+            />
           )}
         />
       </div>
@@ -92,7 +125,13 @@ export function ControlBar(props: ControlBarProps) {
           active={panel === "participants"}
           onClick={() => onTogglePanel("participants")}
         />
-        <ControlButton icon={<MessageSquare className={ICON} />} label="Chat" badge={unreadCount} active={panel === "chat"} onClick={() => onTogglePanel("chat")} />
+        <ControlButton
+          icon={<MessageSquare className={ICON} />}
+          label="Chat"
+          badge={unreadCount}
+          active={panel === "chat"}
+          onClick={() => onTogglePanel("chat")}
+        />
         <ControlButton
           className="hidden md:flex"
           icon={
@@ -107,7 +146,12 @@ export function ControlBar(props: ControlBarProps) {
         {popoverButton(
           "reactions",
           <ControlButton icon={<SmilePlus className={ICON} />} label="Reactions" onClick={() => toggle("reactions")} />,
-          <ReactionsPicker onPick={(emoji) => { setPopover(null); props.onReaction(emoji); }} />,
+          <ReactionsPicker
+            onPick={(emoji) => {
+              setPopover(null);
+              props.onReaction(emoji);
+            }}
+          />,
           "hidden md:block",
         )}
         {popoverButton(

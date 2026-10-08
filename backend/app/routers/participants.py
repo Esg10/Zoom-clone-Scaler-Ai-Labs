@@ -52,5 +52,15 @@ async def remove(code: str, participant_id: int, body: HostActionRequest, db: Se
     meeting = meeting_service.get_meeting(db, code)
     actor = participant_service.require_moderator(db, meeting, body.participant_id)
     target = participant_service.remove(db, meeting, actor, participant_id)
-    await realtime_service.notify_removed(meeting.meeting_code, target.id)
+    await realtime_service.notify_removed(db, meeting, target.id)
     return {"ok": True, "removed": target.id}
+
+
+@router.post("/participants/{participant_id}/admit")
+async def admit(code: str, participant_id: int, body: HostActionRequest, db: Session = Depends(get_db)):
+    """Let a participant in from the waiting room."""
+    meeting = meeting_service.get_meeting(db, code)
+    participant_service.require_moderator(db, meeting, body.participant_id)
+    target = participant_service.admit(db, meeting, participant_id)
+    await realtime_service.admit(db, meeting, target)
+    return {"ok": True, "admitted": target.id}

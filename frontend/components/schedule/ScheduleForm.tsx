@@ -40,7 +40,13 @@ export function ScheduleForm({ editCode }: { editCode: string | null }) {
   return (
     <form onSubmit={onSubmit} noValidate>
       <FormRow label="Topic" htmlFor="topic" error={errors.title}>
-        <input id="topic" className={controlClass} value={values.title} maxLength={200} onChange={(e) => setField("title", e.target.value)} />
+        <input
+          id="topic"
+          className={controlClass}
+          value={values.title}
+          maxLength={200}
+          onChange={(e) => setField("title", e.target.value)}
+        />
       </FormRow>
 
       <FormRow label="Description (Optional)" htmlFor="description">
@@ -57,22 +63,52 @@ export function ScheduleForm({ editCode }: { editCode: string | null }) {
 
       <FormRow label="When" htmlFor="date" error={errors.date ?? errors.time}>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <input id="date" type="date" className={`${controlClass} sm:w-48`} value={values.date} onChange={(e) => setField("date", e.target.value)} />
-          <Select aria-label="Start time" className="sm:w-40" options={timeOptions} value={values.time} onChange={(e) => setField("time", e.target.value)} />
+          <input
+            id="date"
+            type="date"
+            className={`${controlClass} sm:w-48`}
+            value={values.date}
+            onChange={(e) => setField("date", e.target.value)}
+          />
+          <Select
+            aria-label="Start time"
+            className="sm:w-40"
+            options={timeOptions}
+            value={values.time}
+            onChange={(e) => setField("time", e.target.value)}
+          />
         </div>
       </FormRow>
 
       <FormRow label="Duration" error={errors.durationHours ?? errors.durationMinutes}>
         <div className="flex items-center gap-2 text-sm text-zoom-muted">
-          <Select aria-label="Duration hours" className="w-20" options={HOUR_OPTIONS} value={String(values.durationHours)} onChange={(e) => setField("durationHours", Number(e.target.value))} />
+          <Select
+            aria-label="Duration hours"
+            className="w-20"
+            options={HOUR_OPTIONS}
+            value={String(values.durationHours)}
+            onChange={(e) => setField("durationHours", Number(e.target.value))}
+          />
           hr
-          <Select aria-label="Duration minutes" className="w-20" options={MINUTE_OPTIONS} value={String(values.durationMinutes)} onChange={(e) => setField("durationMinutes", Number(e.target.value))} />
+          <Select
+            aria-label="Duration minutes"
+            className="w-20"
+            options={MINUTE_OPTIONS}
+            value={String(values.durationMinutes)}
+            onChange={(e) => setField("durationMinutes", Number(e.target.value))}
+          />
           min
         </div>
       </FormRow>
 
       <FormRow label="Time Zone" htmlFor="timezone">
-        <Select id="timezone" className="sm:max-w-md" options={zones} value={values.timezone} onChange={(e) => setField("timezone", e.target.value)} />
+        <Select
+          id="timezone"
+          className="sm:max-w-md"
+          options={zones}
+          value={values.timezone}
+          onChange={(e) => setField("timezone", e.target.value)}
+        />
       </FormRow>
 
       <FormRow label="Meeting ID">
@@ -94,9 +130,20 @@ export function ScheduleForm({ editCode }: { editCode: string | null }) {
         <div className="flex flex-col gap-3">
           <div className="flex items-end gap-2">
             <div className="w-48">
-              <Input label="Passcode" value={values.passcode} maxLength={10} onChange={(e) => setField("passcode", e.target.value.trim())} />
+              <Input
+                label="Passcode"
+                value={values.passcode}
+                maxLength={10}
+                onChange={(e) => setField("passcode", e.target.value.trim())}
+              />
             </div>
-            <Button variant="ghost" size="md" aria-label="Generate new passcode" title="Generate new passcode" onClick={() => setField("passcode", generatePasscode())}>
+            <Button
+              variant="ghost"
+              size="md"
+              aria-label="Generate new passcode"
+              title="Generate new passcode"
+              onClick={() => setField("passcode", generatePasscode())}
+            >
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
@@ -112,7 +159,11 @@ export function ScheduleForm({ editCode }: { editCode: string | null }) {
 
       <FormRow label="Options">
         <div className="pt-2">
-          <Checkbox label="Mute participants upon entry" checked={values.muteOnEntry} onChange={(e) => setField("muteOnEntry", e.target.checked)} />
+          <Checkbox
+            label="Mute participants upon entry"
+            checked={values.muteOnEntry}
+            onChange={(e) => setField("muteOnEntry", e.target.checked)}
+          />
         </div>
       </FormRow>
 

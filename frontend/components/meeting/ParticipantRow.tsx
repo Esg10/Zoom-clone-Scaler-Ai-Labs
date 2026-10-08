@@ -36,15 +36,27 @@ export function ParticipantRow({ participant, isSelf, canModerate, onMute, onRem
             </button>
           )}
           {participant.role !== "host" && (
-            <button type="button" onClick={onRemove} className="rounded-md bg-room-hover px-2 py-1 text-xs text-red-400 hover:bg-[#444]">
+            <button
+              type="button"
+              onClick={onRemove}
+              className="rounded-md bg-room-hover px-2 py-1 text-xs text-red-400 hover:bg-[#444]"
+            >
               Remove
             </button>
           )}
         </span>
       )}
       <span className={cn("flex items-center gap-2", showActions && "md:group-hover:hidden")}>
-        {participant.is_muted ? <MicOff className="h-4 w-4 text-zoom-red" aria-label="Muted" /> : <Mic className="h-4 w-4 text-room-muted" aria-label="Unmuted" />}
-        {participant.is_video_on ? <Video className="h-4 w-4 text-room-muted" aria-label="Video on" /> : <VideoOff className="h-4 w-4 text-zoom-red" aria-label="Video off" />}
+        {participant.is_muted ? (
+          <MicOff className="h-4 w-4 text-zoom-red" aria-label="Muted" />
+        ) : (
+          <Mic className="h-4 w-4 text-room-muted" aria-label="Unmuted" />
+        )}
+        {participant.is_video_on ? (
+          <Video className="h-4 w-4 text-room-muted" aria-label="Video on" />
+        ) : (
+          <VideoOff className="h-4 w-4 text-zoom-red" aria-label="Video off" />
+        )}
       </span>
     </li>
   );

@@ -22,7 +22,13 @@ export function SpeakerView({ tiles, focusId, activeSpeakerId }: SpeakerViewProp
       {others.length > 0 && (
         <div className="scrollbar-thin flex shrink-0 justify-center gap-2 overflow-x-auto">
           {others.map((tile) => (
-            <VideoTile key={tile.id} tile={tile} variant="strip" speaking={tile.id === activeSpeakerId} className="h-[72px] w-32 sm:h-24 sm:w-[170px]" />
+            <VideoTile
+              key={tile.id}
+              tile={tile}
+              variant="strip"
+              speaking={tile.id === activeSpeakerId}
+              className="h-[72px] w-32 sm:h-24 sm:w-[170px]"
+            />
           ))}
         </div>
       )}

@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { meetingSocketUrl } from "@/lib/api";
 import { MeetingSocket } from "@/lib/signaling";
-import type { ChatMessage, RoomParticipant } from "@/types";
+import type { ChatMessage, Participant, RoomParticipant } from "@/types";
 import type { ClientMessage, Reaction } from "@/types/realtime";
 
-export type RoomStatus = "connecting" | "connected" | "removed" | "ended" | "disconnected" | "rejected";
+export type RoomStatus = "connecting" | "waiting" | "connected" | "removed" | "ended" | "disconnected" | "rejected";
 
 export interface ActiveReaction {
   key: number;
@@ -32,6 +32,7 @@ export function useMeeting(socket: MeetingSocket | null) {
   const [status, setStatus] = useState<RoomStatus>("connecting");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [participants, setParticipants] = useState<RoomParticipant[]>([]);
+  const [waiting, setWaiting] = useState<Participant[]>([]); // waiting room (shown to hosts)
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [historyCount, setHistoryCount] = useState(0); // messages that existed before we joined
   const [sharerId, setSharerId] = useState<number | null>(null);
@@ -53,10 +54,13 @@ export function useMeeting(socket: MeetingSocket | null) {
       socket.on("welcome", (msg) => {
         setStatus("connected");
         setParticipants(msg.participants);
+        setWaiting(msg.waiting);
         setMessages(msg.messages);
         setHistoryCount(msg.messages.length);
         setSharerId(msg.participants.find((p) => p.is_sharing)?.id ?? null);
       }),
+      socket.on("waiting", () => setStatus("waiting")),
+      socket.on("waiting-room", (msg) => setWaiting(msg.participants)),
       socket.on("participant-joined", (msg) => upsert(msg.participant)),
       socket.on("participant-updated", (msg) => upsert(msg.participant)),
       socket.on("participant-left", (msg) => {
@@ -85,14 +89,14 @@ export function useMeeting(socket: MeetingSocket | null) {
           setStatusMessage(msg.message);
         }
       }),
-      socket.onClose(() => setStatus((current) => (current === "connected" ? "disconnected" : current))),
+      socket.onClose(() => setStatus((current) => (current === "connected" || current === "waiting" ? "disconnected" : current))),
     ];
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
   }, [socket]);
 
   const send = useCallback((message: ClientMessage) => socket?.send(message), [socket]);
 
-  return { status, statusMessage, participants, messages, historyCount, sharerId, reactions, send };
+  return { status, statusMessage, participants, waiting, messages, historyCount, sharerId, reactions, send };
 }
 
 export type MeetingState = ReturnType<typeof useMeeting>;

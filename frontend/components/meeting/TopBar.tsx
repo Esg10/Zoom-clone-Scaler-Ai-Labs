@@ -39,7 +39,12 @@ export function TopBar({ meeting, view, onViewChange }: TopBarProps) {
         tone="dark"
         className="w-80 p-4"
         trigger={
-          <button type="button" onClick={() => setOpen(open === "info" ? null : "info")} className="flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-room-hover" aria-label="Meeting information">
+          <button
+            type="button"
+            onClick={() => setOpen(open === "info" ? null : "info")}
+            className="flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-room-hover"
+            aria-label="Meeting information"
+          >
             <ShieldCheck className="h-5 w-5 fill-[#23D959] text-room-bg" />
             <span className="max-w-[40vw] truncate text-sm font-medium">{meeting.title}</span>
           </button>
@@ -73,13 +78,25 @@ export function TopBar({ meeting, view, onViewChange }: TopBarProps) {
         tone="dark"
         className="w-44"
         trigger={
-          <button type="button" onClick={() => setOpen(open === "view" ? null : "view")} className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm hover:bg-room-hover">
+          <button
+            type="button"
+            onClick={() => setOpen(open === "view" ? null : "view")}
+            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm hover:bg-room-hover"
+          >
             <LayoutGrid className="h-4 w-4" /> View <ChevronDown className="h-3.5 w-3.5" />
           </button>
         }
       >
         {(["speaker", "gallery"] as const).map((mode) => (
-          <MenuItem key={mode} tone="dark" checked={view === mode} onSelect={() => { onViewChange(mode); setOpen(null); }}>
+          <MenuItem
+            key={mode}
+            tone="dark"
+            checked={view === mode}
+            onSelect={() => {
+              onViewChange(mode);
+              setOpen(null);
+            }}
+          >
             {mode === "speaker" ? "Speaker" : "Gallery"}
           </MenuItem>
         ))}

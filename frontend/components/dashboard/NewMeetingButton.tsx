@@ -47,36 +47,36 @@ export function NewMeetingButton({ onStart }: NewMeetingButtonProps) {
 
   return (
     <ActionButton
-        icon={Video}
-        name="New Meeting"
-        color="orange"
-        onClick={start}
-        disabled={starting}
-        label={
-          <Popover
-            open={menuOpen}
-            onOpenChange={setMenuOpen}
-            align="center"
-            className="w-72"
-            trigger={
-              <button
-                type="button"
-                onClick={() => setMenuOpen(!menuOpen)}
-                aria-label="New meeting options"
-                className="flex items-center gap-1 rounded px-1 hover:bg-black/5"
-              >
-                New Meeting <ChevronDown className="h-3.5 w-3.5" aria-hidden />
-              </button>
-            }
-          >
-            <ToggleRow label="Start with video" checked={prefs.withVideo} onChange={() => toggle("withVideo")} />
-            <ToggleRow
-              label="Use my personal meeting ID (PMI)"
-              hint={user ? formatMeetingId(user.personal_meeting_id) : undefined}
-              checked={prefs.usePersonalId}
-              onChange={() => toggle("usePersonalId")}
-            />
-          </Popover>
+      icon={Video}
+      name="New Meeting"
+      color="orange"
+      onClick={start}
+      disabled={starting}
+      label={
+        <Popover
+          open={menuOpen}
+          onOpenChange={setMenuOpen}
+          align="center"
+          className="w-72"
+          trigger={
+            <button
+              type="button"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="New meeting options"
+              className="flex items-center gap-1 rounded px-1 hover:bg-black/5"
+            >
+              New Meeting <ChevronDown className="h-3.5 w-3.5" aria-hidden />
+            </button>
+          }
+        >
+          <ToggleRow label="Start with video" checked={prefs.withVideo} onChange={() => toggle("withVideo")} />
+          <ToggleRow
+            label="Use my personal meeting ID (PMI)"
+            hint={user ? formatMeetingId(user.personal_meeting_id) : undefined}
+            checked={prefs.usePersonalId}
+            onChange={() => toggle("usePersonalId")}
+          />
+        </Popover>
       }
     />
   );

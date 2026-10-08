@@ -46,12 +46,22 @@ export function MeetingPage({ code, passcode }: { code: string; passcode: string
       .getMeeting(code)
       .then((meeting) => {
         if (meeting.status === "ended" || meeting.status === "cancelled") {
-          setPhase({ kind: "exit", reason: "unavailable", message: `This meeting has ${meeting.status === "ended" ? "ended" : "been cancelled"}.` });
+          setPhase({
+            kind: "exit",
+            reason: "unavailable",
+            message: `This meeting has ${meeting.status === "ended" ? "ended" : "been cancelled"}.`,
+          });
         } else {
           setPhase({ kind: "prejoin", meeting });
         }
       })
-      .catch((err) => setPhase({ kind: "exit", reason: "unavailable", message: err instanceof ApiError ? err.message : "Couldn't load the meeting." }));
+      .catch((err) =>
+        setPhase({
+          kind: "exit",
+          reason: "unavailable",
+          message: err instanceof ApiError ? err.message : "Couldn't load the meeting.",
+        }),
+      );
   }, [code]);
 
   const join = async (name: string, typedPasscode: string) => {
@@ -102,7 +112,13 @@ export function MeetingPage({ code, passcode }: { code: string; passcode: string
       <MeetingStatusScreen
         title={copy.title}
         message={phase.message ?? copy.message}
-        action={copy.rejoin && <Button variant="dark" onClick={() => window.location.reload()}>Rejoin</Button>}
+        action={
+          copy.rejoin && (
+            <Button variant="dark" onClick={() => window.location.reload()}>
+              Rejoin
+            </Button>
+          )
+        }
       />
     );
   }

@@ -22,7 +22,9 @@ export function DeviceMenu({ sections, devices, selected, onSelect, footer }: De
         <div key={kind} className="pb-1">
           <p className="px-3 pb-1 pt-2 text-xs font-semibold text-room-muted">{title}</p>
           {devices[kind].length === 0 ? (
-            <p className="px-3 py-1.5 text-sm text-room-muted">{kind === "audiooutput" ? "System default" : "No devices found"}</p>
+            <p className="px-3 py-1.5 text-sm text-room-muted">
+              {kind === "audiooutput" ? "System default" : "No devices found"}
+            </p>
           ) : (
             devices[kind].map((device, index) => (
               <MenuItem

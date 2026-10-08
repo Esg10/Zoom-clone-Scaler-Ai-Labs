@@ -35,7 +35,7 @@ export function InviteLanding({ code, linkPasscode }: { code: string; linkPassco
     }
     api
       .validateMeeting(code, linkPasscode)
-      .then(({ meeting }) => setStatus({ kind: "ready", meeting }))
+      .then((meeting) => setStatus({ kind: "ready", meeting }))
       .catch((err) => {
         if (err instanceof ApiError && PASSCODE_ERRORS.has(err.code)) {
           // Link without (or with a stale) passcode: ask for it instead of failing.
@@ -100,7 +100,14 @@ export function InviteLanding({ code, linkPasscode }: { code: string; linkPassco
           {status.meeting && <> · Host: {status.meeting.host_name}</>}
         </p>
       </div>
-      <Input label="Your name" placeholder="Enter your name" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} autoFocus />
+      <Input
+        label="Your name"
+        placeholder="Enter your name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        maxLength={100}
+        autoFocus
+      />
       {needsPasscode && (
         <Input
           label="Meeting passcode"

@@ -20,6 +20,7 @@ export function useHostActions(code: string, selfId: number) {
     return {
       muteAll: () => run(() => api.muteAll(code, selfId), "Everyone has been muted"),
       mute: (id: number) => run(() => api.muteParticipant(code, selfId, id)),
+      admit: (id: number) => run(() => api.admitParticipant(code, selfId, id)),
       remove: (id: number) => run(() => api.removeParticipant(code, selfId, id), "Participant removed"),
       endForAll: () => run(() => api.endMeeting(code, selfId)),
     };

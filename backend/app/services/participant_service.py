@@ -26,6 +26,7 @@ def join(db: Session, meeting: Meeting, data: JoinRequest) -> Participant:
         role=ParticipantRole.host if is_host else ParticipantRole.attendee,
         is_muted=meeting.mute_on_entry and not is_host,
         is_video_on=data.is_video_on,
+        is_admitted=is_host or not meeting.waiting_room_enabled,
     )
     db.add(participant)
     db.commit()
@@ -101,6 +102,15 @@ def mute_all(db: Session, meeting: Meeting, connected_ids: Iterable[int]) -> Lis
     """Mute everyone present except moderators (Zoom behaviour)."""
     targets = [p for p in list_present(db, meeting, connected_ids) if p.role not in MODERATOR_ROLES]
     return mute(db, targets)
+
+
+def admit(db: Session, meeting: Meeting, target_id: int) -> Participant:
+    target = get_participant(db, meeting, target_id)
+    if target.is_removed:
+        raise AppError(409, "participant_removed", "This participant was removed from the meeting")
+    target.is_admitted = True
+    db.commit()
+    return target
 
 
 def remove(db: Session, meeting: Meeting, actor: Participant, target_id: int) -> Participant:

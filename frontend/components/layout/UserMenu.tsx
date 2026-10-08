@@ -39,7 +39,13 @@ export function UserMenu() {
           Personal Meeting ID <span className="font-medium text-zoom-text">{formatMeetingId(user.personal_meeting_id)}</span>
         </p>
       )}
-      <MenuItem icon={<Settings className="h-4 w-4" />} onSelect={() => { setOpen(false); toast("Settings aren't part of this demo"); }}>
+      <MenuItem
+        icon={<Settings className="h-4 w-4" />}
+        onSelect={() => {
+          setOpen(false);
+          toast("Settings aren't part of this demo");
+        }}
+      >
         Settings
       </MenuItem>
       <MenuItem icon={<LogOut className="h-4 w-4" />} disabled onSelect={() => undefined}>

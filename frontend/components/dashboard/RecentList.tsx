@@ -24,13 +24,22 @@ export function RecentList({ meetings, loading, grouped = false, limit }: Recent
   if (!meetings.length) return <EmptyState icon={History} title="No recent meetings" />;
 
   const visible = limit ? meetings.slice(0, limit) : meetings;
-  if (!grouped) return <>{visible.map((m) => <RecentRow key={m.id} meeting={m} showDay />)}</>;
+  if (!grouped)
+    return (
+      <>
+        {visible.map((m) => (
+          <RecentRow key={m.id} meeting={m} showDay />
+        ))}
+      </>
+    );
 
   return (
     <>
       {groupByDay(visible, meetingStart).map(([day, items]) => (
         <section key={day} className="mb-4">
-          <h3 className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-zoom-muted">{formatDayLabel(meetingStart(items[0]))}</h3>
+          <h3 className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-zoom-muted">
+            {formatDayLabel(meetingStart(items[0]))}
+          </h3>
           {items.map((m) => (
             <RecentRow key={m.id} meeting={m} />
           ))}

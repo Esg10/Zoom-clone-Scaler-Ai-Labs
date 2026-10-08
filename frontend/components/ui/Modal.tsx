@@ -25,11 +25,17 @@ export function Modal({ open, onClose, title, children, footer, size = "md" }: M
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" onMouseDown={onClose}>
+    <div
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+      onMouseDown={onClose}
+    >
       <div
         role="dialog"
         aria-modal="true"
-        className={cn("w-full animate-slide-up rounded-t-2xl bg-white text-zoom-text shadow-popover sm:rounded-2xl", WIDTHS[size])}
+        className={cn(
+          "w-full animate-slide-up rounded-t-2xl bg-white text-zoom-text shadow-popover sm:rounded-2xl",
+          WIDTHS[size],
+        )}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-zoom-border px-5 py-4">

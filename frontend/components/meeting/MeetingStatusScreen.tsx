@@ -15,7 +15,10 @@ export function MeetingStatusScreen({ title, message, action }: MeetingStatusScr
       {message && <p className="max-w-md text-sm text-room-muted">{message}</p>}
       <div className="mt-2 flex gap-3">
         {action}
-        <Link href="/" className="inline-flex h-10 items-center rounded-lg bg-zoom-blue px-4 text-sm font-medium text-white hover:bg-zoom-blue-hover">
+        <Link
+          href="/"
+          className="inline-flex h-10 items-center rounded-lg bg-zoom-blue px-4 text-sm font-medium text-white hover:bg-zoom-blue-hover"
+        >
           Return to home
         </Link>
       </div>

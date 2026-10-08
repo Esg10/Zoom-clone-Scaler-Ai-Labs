@@ -57,21 +57,26 @@ export const api = {
   getUpcoming: () => request<Meeting[]>("/api/meetings/upcoming"),
   getRecent: () => request<Meeting[]>("/api/meetings/recent"),
   getMeeting: (code: string) => request<Meeting>(meetingPath(code)),
-  validateMeeting: (code: string, passcode?: string) =>
-    post<ValidateResponse>(`${meetingPath(code)}/validate`, { passcode: passcode || null }),
+  /** Resolves with the meeting if joinable; otherwise throws ApiError with the reason code. */
+  validateMeeting: async (code: string, passcode?: string): Promise<Meeting> => {
+    const result = await post<ValidateResponse>(`${meetingPath(code)}/validate`, { passcode: passcode || null });
+    if (!result.ok || !result.meeting) throw new ApiError(200, result.error?.code ?? "unknown_error", result.error?.message ?? "Can't join");
+    return result.meeting;
+  },
   updateMeeting: (code: string, input: MeetingUpdateInput) =>
     request<Meeting>(meetingPath(code), { method: "PATCH", json: input }),
   cancelMeeting: (code: string) => request<Meeting>(meetingPath(code), { method: "DELETE" }),
 
   joinMeeting: (code: string, input: JoinInput) => post<JoinResponse>(`${meetingPath(code)}/join`, input),
-  listParticipants: (code: string) =>
-    request<{ participants: Participant[] }>(`${meetingPath(code)}/participants`),
+  listParticipants: (code: string) => request<{ participants: Participant[] }>(`${meetingPath(code)}/participants`),
 
   // Host controls: `actorId` is the participant performing the action.
   endMeeting: (code: string, actorId: number) => post<Meeting>(`${meetingPath(code)}/end`, { participant_id: actorId }),
   muteAll: (code: string, actorId: number) => post(`${meetingPath(code)}/mute-all`, { participant_id: actorId }),
   muteParticipant: (code: string, actorId: number, targetId: number) =>
     post(`${meetingPath(code)}/participants/${targetId}/mute`, { participant_id: actorId }),
+  admitParticipant: (code: string, actorId: number, targetId: number) =>
+    post(`${meetingPath(code)}/participants/${targetId}/admit`, { participant_id: actorId }),
   removeParticipant: (code: string, actorId: number, targetId: number) =>
     post(`${meetingPath(code)}/participants/${targetId}/remove`, { participant_id: actorId }),
 };

@@ -109,9 +109,17 @@ class ValidateRequest(BaseModel):
     passcode: Optional[str] = None
 
 
+class ErrorDetail(BaseModel):
+    code: str
+    message: str
+
+
 class ValidateResponse(BaseModel):
+    """Always returned with HTTP 200 so the join form can show the reason inline."""
+
     ok: bool
-    meeting: MeetingOut
+    meeting: Optional[MeetingOut] = None
+    error: Optional[ErrorDetail] = None
 
 
 # ---------- Participants ----------
@@ -142,6 +150,7 @@ class ParticipantOut(ORMModel):
     is_muted: bool
     is_video_on: bool
     is_removed: bool
+    is_admitted: bool
 
 
 class JoinResponse(BaseModel):

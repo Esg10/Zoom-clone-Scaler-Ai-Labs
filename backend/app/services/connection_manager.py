@@ -19,28 +19,50 @@ Message = Dict[str, Any]
 class ConnectionManager:
     def __init__(self) -> None:
         self.rooms: Dict[str, Dict[int, WebSocket]] = defaultdict(dict)
+        # Sockets of participants in the waiting room: connected, but they
+        # neither receive room broadcasts nor count as present.
+        self.lobby: Dict[str, Dict[int, WebSocket]] = defaultdict(dict)
         self.screen_sharer: Dict[str, int] = {}
         self._auto_end_tasks: Dict[str, asyncio.Task] = {}
 
-    async def connect(self, code: str, participant_id: int, websocket: WebSocket) -> None:
+    async def connect(self, code: str, participant_id: int, websocket: WebSocket, waiting: bool = False) -> None:
         self._cancel_auto_end(code)
-        previous = self.rooms[code].get(participant_id)
-        self.rooms[code][participant_id] = websocket
+        target = self.lobby if waiting else self.rooms
+        previous = target[code].get(participant_id)
+        target[code][participant_id] = websocket
         if previous is not None:
             # Same participant opened a second socket (e.g. React dev double-mount); keep the newest.
             await self._safe_close(previous)
 
     def disconnect(self, code: str, participant_id: int, websocket: WebSocket) -> bool:
         """Unregister a socket. Returns False if a newer socket already replaced it."""
-        room = self.rooms.get(code, {})
-        if room.get(participant_id) is not websocket:
+        for registry in (self.rooms, self.lobby):
+            group = registry.get(code, {})
+            if group.get(participant_id) is websocket:
+                del group[participant_id]
+                if not group:
+                    registry.pop(code, None)
+                if self.screen_sharer.get(code) == participant_id:
+                    del self.screen_sharer[code]
+                return True
+        return False
+
+    def admit(self, code: str, participant_id: int) -> bool:
+        """Move a waiting socket into the room. False if they're not connected."""
+        websocket = self.lobby.get(code, {}).pop(participant_id, None)
+        if websocket is None:
             return False
-        del room[participant_id]
-        if self.screen_sharer.get(code) == participant_id:
-            del self.screen_sharer[code]
-        if not room:
-            self.rooms.pop(code, None)
+        self.rooms[code][participant_id] = websocket
         return True
+
+    def lobby_ids(self, code: str) -> List[int]:
+        return list(self.lobby.get(code, {}).keys())
+
+    def is_admitted(self, code: str, participant_id: int) -> bool:
+        return participant_id in self.rooms.get(code, {})
+
+    def _find(self, code: str, participant_id: int) -> Optional[WebSocket]:
+        return self.rooms.get(code, {}).get(participant_id) or self.lobby.get(code, {}).get(participant_id)
 
     def connected_ids(self, code: str) -> List[int]:
         return list(self.rooms.get(code, {}).keys())
@@ -49,7 +71,7 @@ class ConnectionManager:
         return not self.rooms.get(code)
 
     async def send(self, code: str, participant_id: int, message: Message) -> None:
-        websocket = self.rooms.get(code, {}).get(participant_id)
+        websocket = self._find(code, participant_id)
         if websocket is not None:
             await self._safe_send(websocket, message)
 
@@ -59,14 +81,14 @@ class ConnectionManager:
 
     async def kick(self, code: str, participant_id: int, message: Message) -> None:
         """Tell one participant why they're leaving, then close their socket."""
-        websocket = self.rooms.get(code, {}).get(participant_id)
+        websocket = self._find(code, participant_id)
         if websocket is not None:
             self.disconnect(code, participant_id, websocket)
             await self._safe_send(websocket, message)
             await self._safe_close(websocket)
 
     async def close_room(self, code: str, message: Message) -> None:
-        sockets = list(self.rooms.pop(code, {}).values())
+        sockets = list(self.rooms.pop(code, {}).values()) + list(self.lobby.pop(code, {}).values())
         self.screen_sharer.pop(code, None)
         self._cancel_auto_end(code)
         for websocket in sockets:

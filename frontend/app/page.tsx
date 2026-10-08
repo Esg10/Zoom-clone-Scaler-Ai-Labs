@@ -22,7 +22,7 @@ export default function DashboardPage() {
         <section className="w-full md:w-[420px] lg:w-[480px]" aria-label="Your meetings">
           <div className="overflow-hidden rounded-2xl border border-zoom-border bg-white shadow-card">
             <ClockBanner />
-            <div className="scrollbar-thin max-h-[calc(100vh-20rem)] min-h-[200px] overflow-y-auto px-2 pb-3">
+            <div className="scrollbar-thin min-h-[200px] px-2 pb-3 md:max-h-[calc(100vh-20rem)] md:overflow-y-auto">
               {error ? (
                 <p role="alert" className="px-3 py-8 text-center text-sm text-zoom-red">
                   {error}

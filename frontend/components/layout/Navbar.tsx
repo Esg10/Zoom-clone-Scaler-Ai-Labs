@@ -63,11 +63,21 @@ export function Navbar() {
               </>
             );
             return href ? (
-              <Link key={label} href={href} className={tabClass(pathname === href)} aria-current={pathname === href ? "page" : undefined}>
+              <Link
+                key={label}
+                href={href}
+                className={tabClass(pathname === href)}
+                aria-current={pathname === href ? "page" : undefined}
+              >
                 {content}
               </Link>
             ) : (
-              <button key={label} type="button" className={tabClass(false)} onClick={() => toast(`${label} isn't part of this demo`)}>
+              <button
+                key={label}
+                type="button"
+                className={tabClass(false)}
+                onClick={() => toast(`${label} isn't part of this demo`)}
+              >
                 {content}
               </button>
             );

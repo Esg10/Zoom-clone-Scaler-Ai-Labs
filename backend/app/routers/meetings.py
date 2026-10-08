@@ -8,6 +8,7 @@ from app.database import get_db
 from app.errors import AppError
 from app.models import Meeting, User
 from app.schemas import (
+    ErrorDetail,
     HostActionRequest,
     InstantMeetingCreate,
     MeetingOut,
@@ -64,8 +65,13 @@ def read_meeting(code: str, db: Session = Depends(get_db)):
 
 @router.post("/{code}/validate", response_model=ValidateResponse)
 def validate(code: str, body: ValidateRequest, db: Session = Depends(get_db)):
-    meeting = meeting_service.get_meeting(db, code)
-    meeting_service.ensure_joinable(meeting, body.passcode)
+    """Pre-join check. Reasons: meeting_not_found, meeting_ended, meeting_cancelled,
+    passcode_required, invalid_passcode."""
+    try:
+        meeting = meeting_service.get_meeting(db, code)
+        meeting_service.ensure_joinable(meeting, body.passcode)
+    except AppError as exc:
+        return ValidateResponse(ok=False, error=ErrorDetail(code=exc.code, message=exc.message))
     return ValidateResponse(ok=True, meeting=MeetingOut.model_validate(meeting))
 
 

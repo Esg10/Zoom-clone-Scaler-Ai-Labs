@@ -18,7 +18,16 @@ interface PopoverProps {
 const ALIGN = { start: "left-0", center: "left-1/2 -translate-x-1/2", end: "right-0" };
 
 /** Anchored floating panel that closes on outside click or Escape. */
-export function Popover({ open, onOpenChange, trigger, children, side = "bottom", align = "start", tone = "light", className }: PopoverProps) {
+export function Popover({
+  open,
+  onOpenChange,
+  trigger,
+  children,
+  side = "bottom",
+  align = "start",
+  tone = "light",
+  className,
+}: PopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
   const close = useCallback(() => onOpenChange(false), [onOpenChange]);
   useDismiss(ref, close, open);
@@ -33,7 +42,9 @@ export function Popover({ open, onOpenChange, trigger, children, side = "bottom"
             "absolute z-50 min-w-[200px] animate-fade-in rounded-xl p-1.5 shadow-popover",
             side === "top" ? "bottom-full mb-2" : "top-full mt-2",
             ALIGN[align],
-            tone === "dark" ? "border border-room-border bg-[#2a2a2a] text-white" : "border border-zoom-border bg-white text-zoom-text",
+            tone === "dark"
+              ? "border border-room-border bg-[#2a2a2a] text-white"
+              : "border border-zoom-border bg-white text-zoom-text",
             className,
           )}
         >

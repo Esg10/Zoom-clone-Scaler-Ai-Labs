@@ -14,7 +14,11 @@ export function SecurityMenu({ meeting }: { meeting: Meeting }) {
       {rows.map(({ label, on }) => (
         <p key={label} className="flex items-center justify-between gap-4 py-1.5 text-sm">
           {label}
-          {on ? <Check className="h-4 w-4 text-green-400" aria-label="On" /> : <X className="h-4 w-4 text-room-muted" aria-label="Off" />}
+          {on ? (
+            <Check className="h-4 w-4 text-green-400" aria-label="On" />
+          ) : (
+            <X className="h-4 w-4 text-room-muted" aria-label="Off" />
+          )}
         </p>
       ))}
     </div>

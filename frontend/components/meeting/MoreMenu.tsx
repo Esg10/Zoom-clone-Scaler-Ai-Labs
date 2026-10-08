@@ -36,7 +36,8 @@ export function MoreMenu({ close, isSharing, onInvite, onToggleShare, onRecord, 
       <div className="mt-1 flex items-start gap-2.5 border-t border-room-border px-3 pb-1 pt-2 text-xs text-room-muted">
         <Keyboard className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
         <span>
-          <kbd className="font-sans text-white">Alt+A</kbd> mute / unmute · <kbd className="font-sans text-white">Alt+V</kbd> start / stop video
+          <kbd className="font-sans text-white">Alt+A</kbd> mute / unmute · <kbd className="font-sans text-white">Alt+V</kbd>{" "}
+          start / stop video
         </span>
       </div>
     </>

@@ -18,7 +18,11 @@ export function Avatar({ name, color, size = "md", className }: AvatarProps) {
   return (
     <span
       aria-hidden
-      className={cn("inline-flex shrink-0 select-none items-center justify-center font-semibold text-white", SIZES[size], className)}
+      className={cn(
+        "inline-flex shrink-0 select-none items-center justify-center font-semibold text-white",
+        SIZES[size],
+        className,
+      )}
       style={{ backgroundColor: color ?? colorForName(name) }}
     >
       {initials(name)}

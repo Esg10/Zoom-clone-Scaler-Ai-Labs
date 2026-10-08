@@ -121,8 +121,17 @@ export async function copyText(text: string): Promise<boolean> {
 export function invitationText(meeting: Meeting): string {
   const lines = [`${meeting.host_name} is inviting you to a scheduled Zoom meeting.`, "", `Topic: ${meeting.title}`];
   if (meeting.scheduled_start) {
-    lines.push(`Time: ${formatDayLabel(meeting.scheduled_start)}, ${formatTimeRange(meeting.scheduled_start, meeting.duration_minutes)}`);
+    lines.push(
+      `Time: ${formatDayLabel(meeting.scheduled_start)}, ${formatTimeRange(meeting.scheduled_start, meeting.duration_minutes)}`,
+    );
   }
-  lines.push("", "Join Zoom Meeting", meeting.invite_link, "", `Meeting ID: ${formatMeetingId(meeting.meeting_code)}`, `Passcode: ${meeting.passcode}`);
+  lines.push(
+    "",
+    "Join Zoom Meeting",
+    meeting.invite_link,
+    "",
+    `Meeting ID: ${formatMeetingId(meeting.meeting_code)}`,
+    `Passcode: ${meeting.passcode}`,
+  );
   return lines.join("\n");
 }

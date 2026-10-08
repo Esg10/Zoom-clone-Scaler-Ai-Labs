@@ -20,7 +20,17 @@ interface ControlButtonProps {
 }
 
 /** Zoom toolbar button: icon above a small label, optional ^ dropdown. */
-export function ControlButton({ icon, label, onClick, badge, badgeTone = "alert", active, menu, className, shortcut }: ControlButtonProps) {
+export function ControlButton({
+  icon,
+  label,
+  onClick,
+  badge,
+  badgeTone = "alert",
+  active,
+  menu,
+  className,
+  shortcut,
+}: ControlButtonProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -31,7 +41,7 @@ export function ControlButton({ icon, label, onClick, badge, badgeTone = "alert"
         title={shortcut ? `${label} (${shortcut})` : label}
         aria-label={badge ? `${label} (${badge})` : label}
         className={cn(
-          "relative flex min-w-[56px] flex-col items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[11px] text-room-muted transition-colors hover:bg-room-hover hover:text-white sm:min-w-[68px]",
+          "relative flex min-w-[50px] flex-col items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-[10px] text-room-muted transition-colors hover:bg-room-hover hover:text-white sm:min-w-[68px] sm:px-2 sm:text-[11px]",
           active && "text-white",
         )}
       >
@@ -52,25 +62,28 @@ export function ControlButton({ icon, label, onClick, badge, badgeTone = "alert"
         <span className="whitespace-nowrap">{label}</span>
       </button>
       {menu && (
-        <Popover
-          open={menuOpen}
-          onOpenChange={setMenuOpen}
-          side="top"
-          tone="dark"
-          className="w-72"
-          trigger={
-            <button
-              type="button"
-              aria-label={`${label} options`}
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="-ml-1 flex h-full items-start rounded-md px-0.5 pt-2 text-room-muted hover:bg-room-hover hover:text-white"
-            >
-              <ChevronUp className="h-3.5 w-3.5" />
-            </button>
-          }
-        >
-          {menu(() => setMenuOpen(false))}
-        </Popover>
+        // Device menus are hidden on phones to keep the toolbar on one line.
+        <div className="hidden sm:block">
+          <Popover
+            open={menuOpen}
+            onOpenChange={setMenuOpen}
+            side="top"
+            tone="dark"
+            className="w-72"
+            trigger={
+              <button
+                type="button"
+                aria-label={`${label} options`}
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="-ml-1 flex h-full items-start rounded-md px-0.5 pt-2 text-room-muted hover:bg-room-hover hover:text-white"
+              >
+                <ChevronUp className="h-3.5 w-3.5" />
+              </button>
+            }
+          >
+            {menu(() => setMenuOpen(false))}
+          </Popover>
+        </div>
       )}
     </div>
   );

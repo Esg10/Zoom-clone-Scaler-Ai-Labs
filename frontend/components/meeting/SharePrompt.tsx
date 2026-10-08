@@ -15,7 +15,13 @@ export function SharePrompt({ onShare }: { onShare: () => void }) {
     <div className="absolute left-1/2 top-4 z-20 flex -translate-x-1/2 items-center gap-3 rounded-xl bg-[#2a2a2a] px-4 py-3 shadow-popover">
       <MonitorUp className="h-5 w-5 text-green-400" aria-hidden />
       <span className="text-sm">Ready to share your screen?</span>
-      <Button size="sm" onClick={() => { setDismissed(true); onShare(); }}>
+      <Button
+        size="sm"
+        onClick={() => {
+          setDismissed(true);
+          onShare();
+        }}
+      >
         Share Screen
       </Button>
       <Button size="sm" variant="dark" onClick={() => setDismissed(true)}>

@@ -51,7 +51,8 @@ export type MeetingUpdateInput = Partial<ScheduleMeetingInput>;
 
 export interface ValidateResponse {
   ok: boolean;
-  meeting: Meeting;
+  meeting: Meeting | null;
+  error: { code: string; message: string } | null;
 }
 
 export interface Participant {
@@ -65,6 +66,7 @@ export interface Participant {
   is_muted: boolean;
   is_video_on: boolean;
   is_removed: boolean;
+  is_admitted: boolean;
 }
 
 /** Participant as seen inside a live room (adds ephemeral realtime state). */

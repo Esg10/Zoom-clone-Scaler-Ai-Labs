@@ -20,6 +20,8 @@ import { SpeakerView } from "./SpeakerView";
 import { buildTiles } from "./tiles";
 import { TopBar, type ViewMode } from "./TopBar";
 import { VideoGrid } from "./VideoGrid";
+import { WaitingRoomNotice } from "./WaitingRoomNotice";
+import { WaitingRoomScreen } from "./WaitingRoomScreen";
 
 export type ExitReason = Extract<RoomStatus, "removed" | "ended" | "disconnected" | "rejected"> | "left";
 
@@ -52,7 +54,8 @@ export function MeetingRoom({ meeting, self, media, showInviteOnStart, promptSha
   const isHost = me.role === "host" || me.role === "co_host";
 
   useEffect(() => {
-    if (room.status !== "connecting" && room.status !== "connected") onExit(room.status, room.statusMessage);
+    if (room.status !== "connecting" && room.status !== "waiting" && room.status !== "connected")
+      onExit(room.status, room.statusMessage);
   }, [room.status, room.statusMessage, onExit]);
 
   const tiles = buildTiles({ self: me, participants: room.participants, remoteStreams, media, reactions: room.reactions });
@@ -60,7 +63,7 @@ export function MeetingRoom({ meeting, self, media, showInviteOnStart, promptSha
   const activeSpeakerId = useActiveSpeaker(
     tiles.map((tile) => ({
       id: tile.id,
-      track: tile.isSelf ? media.audioTrack : remoteStreams[tile.id]?.getAudioTracks()[0] ?? null,
+      track: tile.isSelf ? media.audioTrack : (remoteStreams[tile.id]?.getAudioTracks()[0] ?? null),
     })),
   );
   useEffect(() => {
@@ -89,6 +92,8 @@ export function MeetingRoom({ meeting, self, media, showInviteOnStart, promptSha
     room.sharerId ?? (media.screenTrack ? self.id : null) ?? lastSpeakerId ?? tiles.find((t) => !t.isSelf)?.id ?? self.id;
   const useSpeakerLayout = view === "speaker" || room.sharerId !== null || Boolean(media.screenTrack);
 
+  if (room.status === "waiting") return <WaitingRoomScreen meeting={meeting} onLeave={() => onExit("left")} />;
+
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-room-bg text-white">
       <TopBar meeting={meeting} view={view} onViewChange={setView} />
@@ -104,17 +109,22 @@ export function MeetingRoom({ meeting, self, media, showInviteOnStart, promptSha
             <p className="absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs">Connecting…</p>
           )}
           {promptShare && !media.screenTrack && <SharePrompt onShare={toggleShare} />}
+          {isHost && panel !== "participants" && (
+            <WaitingRoomNotice waiting={room.waiting} onAdmit={host.admit} onOpenPanel={() => setPanel("participants")} />
+          )}
         </main>
 
         {panel === "participants" && (
           <ParticipantsPanel
             participants={room.participants.length ? room.participants : [{ ...me, is_sharing: false }]}
+            waiting={room.waiting}
             selfId={self.id}
             canModerate={isHost}
             onClose={() => setPanel(null)}
             onInvite={() => setInviteOpen(true)}
             onMuteAll={host.muteAll}
             onMute={host.mute}
+            onAdmit={host.admit}
             onRemove={host.remove}
           />
         )}
@@ -148,7 +158,10 @@ export function MeetingRoom({ meeting, self, media, showInviteOnStart, promptSha
         <RemoteAudio key={id} stream={stream} outputDeviceId={media.selected.audiooutput} />
       ))}
       {media.error && (
-        <p role="alert" className="absolute left-1/2 top-12 z-30 -translate-x-1/2 rounded-lg bg-amber-500/90 px-3 py-1.5 text-xs text-black">
+        <p
+          role="alert"
+          className="absolute left-1/2 top-12 z-30 -translate-x-1/2 rounded-lg bg-amber-500/90 px-3 py-1.5 text-xs text-black"
+        >
           {media.error}
           <button type="button" className="ml-3 underline" onClick={media.clearError}>
             Dismiss

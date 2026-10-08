@@ -29,8 +29,12 @@ export function UpcomingList({ meetings, loading, onChanged, grouped = false, li
     return (
       <EmptyState
         icon={CalendarX2}
-        title="No upcoming meetings today"
-        action={<Link href="/schedule" className="text-sm font-medium text-zoom-blue hover:underline">Schedule a meeting</Link>}
+        title={grouped ? "No upcoming meetings" : "No upcoming meetings today"}
+        action={
+          <Link href="/schedule" className="text-sm font-medium text-zoom-blue hover:underline">
+            Schedule a meeting
+          </Link>
+        }
       />
     );
   }
@@ -49,7 +53,9 @@ export function UpcomingList({ meetings, loading, onChanged, grouped = false, li
       {grouped ? (
         groupByDay(visible, meetingStart).map(([day, items]) => (
           <section key={day} className="mb-4">
-            <h3 className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-zoom-muted">{formatDayLabel(meetingStart(items[0]))}</h3>
+            <h3 className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-zoom-muted">
+              {formatDayLabel(meetingStart(items[0]))}
+            </h3>
             {items.map((meeting) => (
               <MeetingCard key={meeting.id} meeting={meeting} showDay={false} {...cardActions} />
             ))}
