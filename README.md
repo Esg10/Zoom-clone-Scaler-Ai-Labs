@@ -6,6 +6,8 @@ A full-stack clone of the Zoom web app: start instant meetings, schedule meeting
 - **Backend:** FastAPI, SQLAlchemy 2, Pydantic v2, SQLite
 - **Realtime:** FastAPI WebSockets for signaling, WebRTC (peer-to-peer mesh) for media
 
+**Live demo:** https://zoom-clone-scaler-six.vercel.app (API: https://zoom-clone-scaler-api.onrender.com). The API runs on Render's free plan, so the first request after ~15 minutes idle can take 30–60 s while it wakes up.
+
 ## Screenshots
 
 | Home | Schedule |
