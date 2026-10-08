@@ -24,7 +24,7 @@ def join(code: str, body: JoinRequest, db: Session = Depends(get_db)):
 def list_participants(code: str, db: Session = Depends(get_db)):
     """Participants currently connected to the meeting."""
     meeting = meeting_service.get_meeting(db, code)
-    present = participant_service.list_present(db, meeting, manager.connected_ids(meeting.meeting_code))
+    present = participant_service.list_by_ids(db, meeting, manager.connected_ids(meeting.meeting_code))
     return ParticipantList(participants=present)
 
 

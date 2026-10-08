@@ -57,8 +57,9 @@ def require_moderator(db: Session, meeting: Meeting, participant_id: int) -> Par
     return actor
 
 
-def list_present(db: Session, meeting: Meeting, connected_ids: Iterable[int]) -> List[Participant]:
-    ids = list(connected_ids)
+def list_by_ids(db: Session, meeting: Meeting, participant_ids: Iterable[int]) -> List[Participant]:
+    """This meeting's participants with the given ids (e.g. those connected right now)."""
+    ids = list(participant_ids)
     if not ids:
         return []
     return list(
@@ -100,7 +101,7 @@ def mute(db: Session, participants: Iterable[Participant]) -> List[int]:
 
 def mute_all(db: Session, meeting: Meeting, connected_ids: Iterable[int]) -> List[int]:
     """Mute everyone present except moderators (Zoom behaviour)."""
-    targets = [p for p in list_present(db, meeting, connected_ids) if p.role not in MODERATOR_ROLES]
+    targets = [p for p in list_by_ids(db, meeting, connected_ids) if p.role not in MODERATOR_ROLES]
     return mute(db, targets)
 
 

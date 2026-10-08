@@ -44,7 +44,7 @@ def chat_payload(message) -> Dict[str, Any]:
 # ---------- Connection lifecycle ----------
 
 def _waiting_payload(db: Session, meeting: Meeting) -> List[Dict[str, Any]]:
-    waiting = participant_service.list_present(db, meeting, manager.lobby_ids(meeting.meeting_code))
+    waiting = participant_service.list_by_ids(db, meeting, manager.lobby_ids(meeting.meeting_code))
     return [ParticipantOut.model_validate(p).model_dump(mode="json") for p in waiting]
 
 
@@ -61,7 +61,7 @@ async def on_connect(db: Session, meeting: Meeting, participant: Participant) ->
         await broadcast_waiting_room(db, meeting)
         return
 
-    present = participant_service.list_present(db, meeting, manager.connected_ids(code))
+    present = participant_service.list_by_ids(db, meeting, manager.connected_ids(code))
     await manager.send(code, participant.id, {
         "type": "welcome",
         "self_id": participant.id,
