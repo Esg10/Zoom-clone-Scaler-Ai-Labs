@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-zoom-bg font-sans text-zoom-text antialiased;
+}
+
+/* Native date/time pickers inherit the app font. */
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  .mirror {
+    transform: scaleX(-1);
+  }
+}
