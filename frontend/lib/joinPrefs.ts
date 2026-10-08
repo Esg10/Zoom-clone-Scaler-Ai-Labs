@@ -9,6 +9,8 @@ export interface JoinPrefs {
   asHost?: boolean;
   /** Show the invite dialog once the room opens (new instant meetings). */
   showInvite?: boolean;
+  /** Came from the dashboard "Share Screen" tile: prompt to share after joining. */
+  shareOnJoin?: boolean;
 }
 
 const key = (code: string) => `zoom-clone:join:${code}`;
