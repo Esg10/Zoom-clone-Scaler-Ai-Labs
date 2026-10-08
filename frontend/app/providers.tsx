@@ -2,12 +2,12 @@
 
 import type { ReactNode } from "react";
 import { ToastProvider } from "@/components/ui/Toast";
-import { CurrentUserProvider } from "@/hooks/useCurrentUser";
+import { AuthProvider } from "@/hooks/useAuth";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <ToastProvider>
-      <CurrentUserProvider>{children}</CurrentUserProvider>
+      <AuthProvider>{children}</AuthProvider>
     </ToastProvider>
   );
 }

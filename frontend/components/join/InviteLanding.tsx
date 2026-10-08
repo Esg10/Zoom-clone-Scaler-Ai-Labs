@@ -7,6 +7,7 @@ import { AlertCircle, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useAuth } from "@/hooks/useAuth";
 import { api, ApiError } from "@/lib/api";
 import { saveJoinPrefs } from "@/lib/joinPrefs";
 import { formatMeetingId } from "@/lib/utils";
@@ -20,6 +21,7 @@ type Status = { kind: "loading" } | { kind: "ready"; meeting?: Meeting } | { kin
 /** Entry point for invite links (/j/:code?pwd=...): only asks for a display name. */
 export function InviteLanding({ code, linkPasscode }: { code: string; linkPasscode: string }) {
   const router = useRouter();
+  const { user } = useAuth();
   const [status, setStatus] = useState<Status>({ kind: "loading" });
   const [name, setName] = useState("");
   const [passcode, setPasscode] = useState(linkPasscode);
@@ -29,7 +31,7 @@ export function InviteLanding({ code, linkPasscode }: { code: string; linkPassco
 
   useEffect(() => {
     try {
-      setName(localStorage.getItem(NAME_KEY) ?? "");
+      setName((current) => current || localStorage.getItem(NAME_KEY) || "");
     } catch {
       // No stored name; the field simply starts empty.
     }
@@ -47,6 +49,11 @@ export function InviteLanding({ code, linkPasscode }: { code: string; linkPassco
         }
       });
   }, [code, linkPasscode]);
+
+  // Signed-in users join under their account name.
+  useEffect(() => {
+    if (user) setName((current) => current || user.name);
+  }, [user]);
 
   const join = async (event: FormEvent) => {
     event.preventDefault();

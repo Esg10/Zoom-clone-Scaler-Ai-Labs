@@ -5,10 +5,11 @@ import { useToast } from "@/components/ui/Toast";
 import { api, ApiError } from "@/lib/api";
 
 /** Host-only REST calls; results reach everyone through WebSocket events. */
-export function useHostActions(code: string, selfId: number) {
+export function useHostActions(code: string, selfId: number, token: string) {
   const toast = useToast();
 
   return useMemo(() => {
+    const actor = { id: selfId, token };
     const run = async (action: () => Promise<unknown>, success?: string) => {
       try {
         await action();
@@ -18,11 +19,11 @@ export function useHostActions(code: string, selfId: number) {
       }
     };
     return {
-      muteAll: () => run(() => api.muteAll(code, selfId), "Everyone has been muted"),
-      mute: (id: number) => run(() => api.muteParticipant(code, selfId, id)),
-      admit: (id: number) => run(() => api.admitParticipant(code, selfId, id)),
-      remove: (id: number) => run(() => api.removeParticipant(code, selfId, id), "Participant removed"),
-      endForAll: () => run(() => api.endMeeting(code, selfId)),
+      muteAll: () => run(() => api.muteAll(code, actor), "Everyone has been muted"),
+      mute: (id: number) => run(() => api.muteParticipant(code, actor, id)),
+      admit: (id: number) => run(() => api.admitParticipant(code, actor, id)),
+      remove: (id: number) => run(() => api.removeParticipant(code, actor, id), "Participant removed"),
+      endForAll: () => run(() => api.endMeeting(code, actor)),
     };
-  }, [code, selfId, toast]);
+  }, [code, selfId, token, toast]);
 }

@@ -4,13 +4,13 @@ import { Copy, Video } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAuth } from "@/hooks/useAuth";
 import { useMeetingActions } from "@/hooks/useMeetingActions";
 import { copyText, formatMeetingId } from "@/lib/utils";
 
 /** The user's reusable Personal Meeting ID (PMI) room. */
 export function PersonalRoom() {
-  const { user } = useCurrentUser();
+  const { user } = useAuth();
   const { startInstant } = useMeetingActions();
   const toast = useToast();
   if (!user) return <Skeleton className="h-32 w-full" />;

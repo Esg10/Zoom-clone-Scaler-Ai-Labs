@@ -1,15 +1,17 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LogOut, Settings } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { MenuItem, Popover } from "@/components/ui/Popover";
 import { useToast } from "@/components/ui/Toast";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAuth } from "@/hooks/useAuth";
 import { formatMeetingId } from "@/lib/utils";
 
 export function UserMenu() {
-  const { user } = useCurrentUser();
+  const { user, logout } = useAuth();
+  const router = useRouter();
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const name = user?.name ?? "Me";
@@ -48,8 +50,15 @@ export function UserMenu() {
       >
         Settings
       </MenuItem>
-      <MenuItem icon={<LogOut className="h-4 w-4" />} disabled onSelect={() => undefined}>
-        Sign out (demo user)
+      <MenuItem
+        icon={<LogOut className="h-4 w-4" />}
+        onSelect={async () => {
+          setOpen(false);
+          await logout();
+          router.replace("/login");
+        }}
+      >
+        Sign Out
       </MenuItem>
     </Popover>
   );

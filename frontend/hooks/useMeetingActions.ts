@@ -7,13 +7,13 @@ import { api, ApiError } from "@/lib/api";
 import { saveJoinPrefs } from "@/lib/joinPrefs";
 import { copyText, invitationText } from "@/lib/utils";
 import type { Meeting } from "@/types";
-import { useCurrentUser } from "./useCurrentUser";
+import { useAuth } from "./useAuth";
 
 /** Dashboard/Meetings-page actions shared by several components. */
 export function useMeetingActions() {
   const router = useRouter();
   const toast = useToast();
-  const { user } = useCurrentUser();
+  const { user } = useAuth();
 
   const startInstant = useCallback(
     async (options: { withVideo: boolean; usePersonalId: boolean }) => {

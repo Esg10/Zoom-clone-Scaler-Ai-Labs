@@ -40,10 +40,28 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True)
     avatar_color: Mapped[str] = mapped_column(String(7))
     personal_meeting_id: Mapped[str] = mapped_column(String(11), unique=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
     hosted_meetings: Mapped[List["Meeting"]] = relationship(back_populates="host")
     participations: Mapped[List["Participant"]] = relationship(back_populates="user")
+    sessions: Mapped[List["AuthSession"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan", passive_deletes=True
+    )
+
+
+class AuthSession(Base):
+    """A login session. The bearer token itself is never stored, only its SHA-256."""
+
+    __tablename__ = "auth_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime)
+
+    user: Mapped[User] = relationship(back_populates="sessions")
 
 
 class Meeting(Base):
@@ -103,6 +121,9 @@ class Participant(Base):
     is_removed: Mapped[bool] = mapped_column(Boolean, default=False)
     # False while the participant sits in the waiting room (waiting_room_enabled meetings).
     is_admitted: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Hash of the secret handed out on join; proves "I am this participant" on
+    # the WebSocket and for host actions (ids alone are guessable).
+    token_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
 
     meeting: Mapped[Meeting] = relationship(back_populates="participants")
     user: Mapped[Optional[User]] = relationship(back_populates="participations")

@@ -17,13 +17,13 @@ export interface ActiveReaction {
 const REACTION_DURATION_MS = 4000;
 
 /** Creates (but doesn't open) the meeting WebSocket for a joined participant. */
-export function useMeetingSocket(code: string, participantId: number): MeetingSocket | null {
+export function useMeetingSocket(code: string, participantId: number, token: string): MeetingSocket | null {
   const [socket, setSocket] = useState<MeetingSocket | null>(null);
   useEffect(() => {
-    const instance = new MeetingSocket(meetingSocketUrl(code, participantId));
+    const instance = new MeetingSocket(meetingSocketUrl(code, { id: participantId, token }));
     setSocket(instance);
     return () => instance.close();
-  }, [code, participantId]);
+  }, [code, participantId, token]);
   return socket;
 }
 

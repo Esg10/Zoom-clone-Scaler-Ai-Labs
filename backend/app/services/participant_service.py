@@ -1,27 +1,31 @@
 """Participant lifecycle: joining, presence, media state and host moderation."""
-from typing import Iterable, List
+from typing import Iterable, List, Optional, Tuple
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import utcnow
 from app.errors import AppError
-from app.models import ChatMessage, Meeting, MeetingStatus, Participant, ParticipantRole
-from app.schemas import JoinRequest
+from app.models import ChatMessage, Meeting, MeetingStatus, Participant, ParticipantRole, User
+from app.schemas import HostActionRequest, JoinRequest
+from app.security import hash_token, new_token, token_matches
 from app.services import meeting_service
 
 MODERATOR_ROLES = (ParticipantRole.host, ParticipantRole.co_host)
 
 
-def join(db: Session, meeting: Meeting, data: JoinRequest) -> Participant:
-    # Role comes from identity, not from the request: only the meeting owner is host.
-    is_host = data.user_id is not None and data.user_id == meeting.host_id
+def join(db: Session, meeting: Meeting, data: JoinRequest, user: Optional[User]) -> Tuple[Participant, str]:
+    """Create a participant and return it with its secret token (only shown once)."""
+    # The role comes from the verified login, never from the request body.
+    is_host = user is not None and user.id == meeting.host_id
     meeting_service.ensure_joinable(meeting, data.passcode, is_host=is_host)
     meeting_service.mark_live(db, meeting)
 
+    token = new_token()
     participant = Participant(
         meeting_id=meeting.id,
-        user_id=data.user_id if is_host else None,
+        user_id=user.id if user else None,
+        token_hash=hash_token(token),
         display_name=data.display_name,
         role=ParticipantRole.host if is_host else ParticipantRole.attendee,
         is_muted=meeting.mute_on_entry and not is_host,
@@ -30,7 +34,7 @@ def join(db: Session, meeting: Meeting, data: JoinRequest) -> Participant:
     )
     db.add(participant)
     db.commit()
-    return participant
+    return participant, token
 
 
 def get_participant(db: Session, meeting: Meeting, participant_id: int) -> Participant:
@@ -40,9 +44,17 @@ def get_participant(db: Session, meeting: Meeting, participant_id: int) -> Parti
     return participant
 
 
-def get_for_socket(db: Session, meeting: Meeting, participant_id: int) -> Participant:
-    """Checks performed before a participant may open the meeting's WebSocket."""
+def authenticate(db: Session, meeting: Meeting, participant_id: int, token: str) -> Participant:
+    """Prove the caller is this participant by checking its secret token."""
     participant = get_participant(db, meeting, participant_id)
+    if not participant.token_hash or not token_matches(token, participant.token_hash):
+        raise AppError(403, "invalid_participant_token", "Your meeting session is not valid. Please rejoin.")
+    return participant
+
+
+def get_for_socket(db: Session, meeting: Meeting, participant_id: int, token: str) -> Participant:
+    """Checks performed before a participant may open the meeting's WebSocket."""
+    participant = authenticate(db, meeting, participant_id, token)
     if participant.is_removed:
         raise AppError(403, "removed", "You have been removed from this meeting")
     if meeting.status != MeetingStatus.live:
@@ -50,8 +62,8 @@ def get_for_socket(db: Session, meeting: Meeting, participant_id: int) -> Partic
     return participant
 
 
-def require_moderator(db: Session, meeting: Meeting, participant_id: int) -> Participant:
-    actor = get_participant(db, meeting, participant_id)
+def require_moderator(db: Session, meeting: Meeting, request: HostActionRequest) -> Participant:
+    actor = authenticate(db, meeting, request.participant_id, request.participant_token)
     if actor.role not in MODERATOR_ROLES or actor.is_removed:
         raise AppError(403, "not_host", "Only the host can do that")
     return actor

@@ -1,6 +1,7 @@
 // Typed client for the FastAPI backend. All HTTP calls go through `request`.
 import type {
   ApiErrorBody,
+  AuthResponse,
   JoinInput,
   JoinResponse,
   Meeting,
@@ -24,13 +25,41 @@ export class ApiError extends Error {
   }
 }
 
+// ---------- Login token (kept in localStorage so a refresh stays signed in) ----------
+
+const TOKEN_KEY = "zoom-clone:auth-token";
+/** Fired when the server rejects our token, so the auth provider can sign out. */
+export const AUTH_EXPIRED_EVENT = "zoom-clone:auth-expired";
+
+export function getAuthToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setAuthToken(token: string | null): void {
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token);
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // Storage unavailable: the session just won't survive a reload.
+  }
+}
+
 async function request<T>(path: string, init: RequestInit & { json?: unknown } = {}): Promise<T> {
   const { json, ...rest } = init;
+  const token = getAuthToken();
   let response: Response;
   try {
     response = await fetch(`${API_URL}${path}`, {
       ...rest,
-      headers: { "Content-Type": "application/json", ...rest.headers },
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...rest.headers,
+      },
       body: json === undefined ? rest.body : JSON.stringify(json),
     });
   } catch {
@@ -40,6 +69,10 @@ async function request<T>(path: string, init: RequestInit & { json?: unknown } =
   const body = await response.json().catch(() => null);
   if (!response.ok) {
     const error = (body as ApiErrorBody | null)?.error;
+    if (response.status === 401 && token && error?.code === "not_authenticated") {
+      setAuthToken(null);
+      window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+    }
     throw new ApiError(response.status, error?.code ?? "unknown_error", error?.message ?? "Something went wrong");
   }
   return body as T;
@@ -48,7 +81,18 @@ async function request<T>(path: string, init: RequestInit & { json?: unknown } =
 const meetingPath = (code: string) => `/api/meetings/${encodeURIComponent(code)}`;
 const post = <T>(path: string, json: unknown = {}) => request<T>(path, { method: "POST", json });
 
+/** Proves "I am this participant" for host actions and the meeting socket. */
+export interface ParticipantCredentials {
+  id: number;
+  token: string;
+}
+
+const actorBody = (actor: ParticipantCredentials) => ({ participant_id: actor.id, participant_token: actor.token });
+
 export const api = {
+  signup: (input: { name: string; email: string; password: string }) => post<AuthResponse>("/api/auth/signup", input),
+  login: (input: { email: string; password: string }) => post<AuthResponse>("/api/auth/login", input),
+  logout: () => post<null>("/api/auth/logout"),
   getMe: () => request<User>("/api/users/me"),
 
   createInstantMeeting: (usePersonalMeetingId = false) =>
@@ -60,7 +104,8 @@ export const api = {
   /** Resolves with the meeting if joinable; otherwise throws ApiError with the reason code. */
   validateMeeting: async (code: string, passcode?: string): Promise<Meeting> => {
     const result = await post<ValidateResponse>(`${meetingPath(code)}/validate`, { passcode: passcode || null });
-    if (!result.ok || !result.meeting) throw new ApiError(200, result.error?.code ?? "unknown_error", result.error?.message ?? "Can't join");
+    if (!result.ok || !result.meeting)
+      throw new ApiError(200, result.error?.code ?? "unknown_error", result.error?.message ?? "Can't join");
     return result.meeting;
   },
   updateMeeting: (code: string, input: MeetingUpdateInput) =>
@@ -70,16 +115,16 @@ export const api = {
   joinMeeting: (code: string, input: JoinInput) => post<JoinResponse>(`${meetingPath(code)}/join`, input),
   listParticipants: (code: string) => request<{ participants: Participant[] }>(`${meetingPath(code)}/participants`),
 
-  // Host controls: `actorId` is the participant performing the action.
-  endMeeting: (code: string, actorId: number) => post<Meeting>(`${meetingPath(code)}/end`, { participant_id: actorId }),
-  muteAll: (code: string, actorId: number) => post(`${meetingPath(code)}/mute-all`, { participant_id: actorId }),
-  muteParticipant: (code: string, actorId: number, targetId: number) =>
-    post(`${meetingPath(code)}/participants/${targetId}/mute`, { participant_id: actorId }),
-  admitParticipant: (code: string, actorId: number, targetId: number) =>
-    post(`${meetingPath(code)}/participants/${targetId}/admit`, { participant_id: actorId }),
-  removeParticipant: (code: string, actorId: number, targetId: number) =>
-    post(`${meetingPath(code)}/participants/${targetId}/remove`, { participant_id: actorId }),
+  // Host controls: `actor` is the participant performing the action.
+  endMeeting: (code: string, actor: ParticipantCredentials) => post<Meeting>(`${meetingPath(code)}/end`, actorBody(actor)),
+  muteAll: (code: string, actor: ParticipantCredentials) => post(`${meetingPath(code)}/mute-all`, actorBody(actor)),
+  muteParticipant: (code: string, actor: ParticipantCredentials, targetId: number) =>
+    post(`${meetingPath(code)}/participants/${targetId}/mute`, actorBody(actor)),
+  admitParticipant: (code: string, actor: ParticipantCredentials, targetId: number) =>
+    post(`${meetingPath(code)}/participants/${targetId}/admit`, actorBody(actor)),
+  removeParticipant: (code: string, actor: ParticipantCredentials, targetId: number) =>
+    post(`${meetingPath(code)}/participants/${targetId}/remove`, actorBody(actor)),
 };
 
-export const meetingSocketUrl = (code: string, participantId: number) =>
-  `${WS_URL}/ws/meetings/${encodeURIComponent(code)}?participant_id=${participantId}`;
+export const meetingSocketUrl = (code: string, actor: ParticipantCredentials) =>
+  `${WS_URL}/ws/meetings/${encodeURIComponent(code)}?participant_id=${actor.id}&token=${encodeURIComponent(actor.token)}`;

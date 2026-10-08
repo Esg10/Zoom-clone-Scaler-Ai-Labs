@@ -77,13 +77,19 @@ export interface RoomParticipant extends Participant {
 export interface JoinInput {
   display_name: string;
   passcode?: string;
-  user_id?: number;
   is_video_on: boolean;
 }
 
 export interface JoinResponse {
   participant: Participant;
   meeting: Meeting;
+  /** Secret for this participant; required by the WebSocket and host actions. */
+  participant_token: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: User;
 }
 
 export interface ChatMessage {

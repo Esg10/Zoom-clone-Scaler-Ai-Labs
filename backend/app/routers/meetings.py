@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import current_user
 from app.errors import AppError
 from app.models import Meeting, User
 from app.schemas import (
@@ -18,13 +19,8 @@ from app.schemas import (
     ValidateResponse,
 )
 from app.services import meeting_service, participant_service, realtime_service
-from app.services.user_service import get_current_user
 
 router = APIRouter(prefix="/api/meetings", tags=["meetings"])
-
-
-def current_user(db: Session = Depends(get_db)) -> User:
-    return get_current_user(db)
 
 
 def owned_meeting(code: str, db: Session = Depends(get_db), user: User = Depends(current_user)) -> Meeting:
@@ -88,7 +84,7 @@ def cancel(meeting: Meeting = Depends(owned_meeting), db: Session = Depends(get_
 @router.post("/{code}/end", response_model=MeetingOut)
 async def end(code: str, body: HostActionRequest, db: Session = Depends(get_db)):
     meeting = meeting_service.get_meeting(db, code)
-    participant_service.require_moderator(db, meeting, body.participant_id)
+    participant_service.require_moderator(db, meeting, body)
     meeting_service.end_meeting(db, meeting)
     await realtime_service.notify_meeting_ended(meeting.meeting_code)
     return meeting

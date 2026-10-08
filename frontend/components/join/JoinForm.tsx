@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAuth } from "@/hooks/useAuth";
 import { api, ApiError } from "@/lib/api";
 import { saveJoinPrefs } from "@/lib/joinPrefs";
 import { parseMeetingInput } from "@/lib/utils";
@@ -27,7 +27,7 @@ const MEETING_ERRORS = new Set(["meeting_not_found", "meeting_ended", "meeting_c
 /** Join by meeting ID or invite link; validates server-side before navigating. */
 export function JoinForm({ shareScreen = false, onCancel }: JoinFormProps) {
   const router = useRouter();
-  const { user } = useCurrentUser();
+  const { user } = useAuth();
   const [meetingInput, setMeetingInput] = useState("");
   const [passcode, setPasscode] = useState("");
   const [name, setName] = useState("");

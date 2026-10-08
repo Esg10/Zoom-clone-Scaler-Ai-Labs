@@ -13,13 +13,13 @@ logger = logging.getLogger(__name__)
 
 
 @router.websocket("/ws/meetings/{code}")
-async def meeting_socket(websocket: WebSocket, code: str, participant_id: int):
+async def meeting_socket(websocket: WebSocket, code: str, participant_id: int, token: str = ""):
     # One DB session for the lifetime of this socket (SQLite calls are short).
     db = SessionLocal()
     await websocket.accept()
     try:
         meeting = meeting_service.get_meeting(db, code)
-        participant = participant_service.get_for_socket(db, meeting, participant_id)
+        participant = participant_service.get_for_socket(db, meeting, participant_id, token)
     except AppError as exc:
         # Accept-then-close so the browser gets a readable reason; close code is 4000 + HTTP status.
         await websocket.send_json({"type": "error", "code": exc.code, "message": exc.message})

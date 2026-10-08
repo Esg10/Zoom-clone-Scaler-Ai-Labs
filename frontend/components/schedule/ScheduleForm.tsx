@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { ListSkeleton } from "@/components/ui/Skeleton";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAuth } from "@/hooks/useAuth";
 import { useScheduleForm } from "@/hooks/useScheduleForm";
 import { formatMeetingId } from "@/lib/utils";
 import { generatePasscode, HOUR_OPTIONS, MINUTE_OPTIONS, TIME_OPTIONS, timeZoneOptions, formatClock } from "@/lib/schedule";
@@ -19,7 +19,7 @@ const controlClass =
 
 export function ScheduleForm({ editCode }: { editCode: string | null }) {
   const router = useRouter();
-  const { user } = useCurrentUser();
+  const { user } = useAuth();
   const { values, errors, loading, saving, meetingCode, setField, submit } = useScheduleForm(editCode);
   const zones = useMemo(() => (loading ? [] : timeZoneOptions()), [loading]);
 

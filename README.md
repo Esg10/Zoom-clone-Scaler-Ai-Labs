@@ -10,15 +10,15 @@ A full-stack clone of the Zoom web app: start instant meetings, schedule meeting
 
 ## Screenshots
 
-| Home | Schedule |
+| Sign in | Home |
 | --- | --- |
-| ![Dashboard](docs/screenshots/dashboard.png) | ![Schedule meeting](docs/screenshots/schedule.png) |
-| **Meetings** | **Join** |
-| ![Meetings list](docs/screenshots/meetings.png) | ![Join modal](docs/screenshots/join-modal.png) |
-| **Meeting room: gallery + chat** | **Participants panel (host)** |
-| ![Meeting with chat](docs/screenshots/meeting-chat.png) | ![Participants panel](docs/screenshots/meeting-participants.png) |
-| **Invite dialog** | **Pre-join preview** |
-| ![Invite dialog](docs/screenshots/invite-modal.png) | ![Pre-join](docs/screenshots/prejoin.png) |
+| ![Sign in](docs/screenshots/login.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+| **Schedule** | **Meetings** |
+| ![Schedule meeting](docs/screenshots/schedule.png) | ![Meetings list](docs/screenshots/meetings.png) |
+| **Join** | **Meeting room: gallery + chat** |
+| ![Join modal](docs/screenshots/join-modal.png) | ![Meeting with chat](docs/screenshots/meeting-chat.png) |
+| **Participants panel (host)** | **Invite dialog** |
+| ![Participants panel](docs/screenshots/meeting-participants.png) | ![Invite dialog](docs/screenshots/invite-modal.png) |
 
 | Mobile home | Mobile meeting |
 | --- | --- |
@@ -28,6 +28,7 @@ A full-stack clone of the Zoom web app: start instant meetings, schedule meeting
 
 ## Features
 
+- **Accounts:** sign up and sign in with email and password. The dashboard, scheduling and meeting lists are per user. Guests can still join a meeting by ID or invite link without an account, as in Zoom. Demo login: `eaknoor.singh@example.com` / `demo1234`.
 - **Home dashboard:** New Meeting (with "Start with video" / "Use personal meeting ID" options), Join, Schedule and Share Screen tiles, a live clock banner, and Upcoming and Recent meetings with Start / Copy invitation / Edit / Delete.
 - **Instant meetings:** one click creates a live meeting, opens the pre-join preview, then the room with the invite dialog (formatted ID `845 1236 7901`, passcode, link and copy buttons).
 - **Join:** accepts a meeting ID *or* a pasted invite link (the passcode is taken from the link). Has "Don't connect to audio" and "Turn off my video" options, and shows inline errors for not found, ended, cancelled, missing passcode and wrong passcode.
@@ -85,9 +86,19 @@ A full-stack clone of the Zoom web app: start instant meetings, schedule meeting
 
 Host actions go through REST endpoints, so they can be checked server-side. The REST handler then pushes the resulting event to the room over the sockets.
 
+## Authentication
+
+- **Passwords** are hashed with PBKDF2-HMAC-SHA256: 600,000 iterations and a random salt per user, stored as `pbkdf2_sha256$iterations$salt$hash`. This uses only the Python standard library.
+- **Signing in** creates a random 256-bit session token. The browser keeps it in `localStorage` and sends it as `Authorization: Bearer …`. The server stores only the token's SHA-256 hash in `auth_sessions`, so a leaked database can't be used to log in. Sessions expire after 30 days, and signing out deletes the row.
+- **Failed logins** return the same message whether the email or the password is wrong. An unknown email still runs a password check, so response time doesn't reveal which accounts exist.
+- **Who is host** is decided by the server: you join as host only if your login token belongs to the meeting's owner. The browser can't claim the role. The owner can skip the passcode; everyone else, signed in or not, needs it.
+- **Participant tokens:** each join also returns a secret `participant_token`, kept only in memory and stored hashed. The meeting WebSocket and every host action require it. This stops anyone from taking over another person's connection, or faking host actions, by guessing their numeric participant id.
+- **Pages:** the dashboard, `/schedule` and `/meetings` redirect signed-out visitors to `/login?next=…`, then return them there after sign-in. `/join`, `/j/…` and `/meeting/…` work for guests.
+
 ## Database schema
 
 ```
+users 1 ──< auth_sessions        (ON DELETE CASCADE)
 users 1 ──< meetings (host_id)
 users 1 ──< participants (user_id, nullable for guests)
 meetings 1 ──< participants      (ON DELETE CASCADE)
@@ -97,9 +108,10 @@ participants 1 ──< chat_messages (ON DELETE CASCADE)
 
 | Table | Columns |
 | --- | --- |
-| **users** | `id` PK, `name`, `email` UNIQUE, `avatar_color`, `personal_meeting_id` UNIQUE, `created_at` |
+| **users** | `id` PK, `name`, `email` UNIQUE, `avatar_color`, `personal_meeting_id` UNIQUE, `password_hash`, `created_at` |
+| **auth_sessions** | `id` PK, `user_id` FK→users, `token_hash` UNIQUE, `created_at`, `expires_at` |
 | **meetings** | `id` PK, `meeting_code` UNIQUE (10–11 digits), `title`, `description`, `host_id` FK→users, `type` (`instant`\|`scheduled`), `status` (`scheduled`\|`live`\|`ended`\|`cancelled`), `scheduled_start` (nullable for instant), `duration_minutes`, `timezone` (IANA), `passcode`, `invite_link`, `waiting_room_enabled`, `mute_on_entry`, `created_at`, `started_at`, `ended_at` |
-| **participants** | `id` PK, `meeting_id` FK→meetings, `user_id` FK→users (nullable), `display_name`, `role` (`host`\|`co_host`\|`attendee`), `joined_at`, `left_at`, `is_muted`, `is_video_on`, `is_removed`, `is_admitted` |
+| **participants** | `id` PK, `meeting_id` FK→meetings, `user_id` FK→users (nullable), `display_name`, `role` (`host`\|`co_host`\|`attendee`), `joined_at`, `left_at`, `is_muted`, `is_video_on`, `is_removed`, `is_admitted`, `token_hash` |
 | **chat_messages** | `id` PK, `meeting_id` FK→meetings, `participant_id` FK→participants, `content`, `sent_at` |
 
 Design notes:
@@ -109,7 +121,9 @@ Design notes:
 - **Enums** are stored as strings, which keeps them portable and readable.
 - **SQLite foreign keys** are switched on with `PRAGMA foreign_keys=ON` so the cascades actually run.
 - **Participants are kept, not deleted.** Each row records when someone joined, when they left, and whether they were removed. The Recent list counts attendees from these rows.
-- `participants.is_admitted` is the one column added beyond the original spec. It is `false` while someone is in the waiting room.
+- **Columns added beyond the original spec:**
+  - `participants.is_admitted`: `false` while someone is in the waiting room.
+  - `users.password_hash`, the `auth_sessions` table, and `participants.token_hash`: for authentication.
 - **Meeting IDs** are random 11-digit codes (Personal Meeting IDs use 10 digits) that never start with 0. They are checked against both `meetings` and `users.personal_meeting_id` and regenerated on a collision. Passcodes are 6 random letters/digits from `secrets`.
 
 ## API
@@ -119,7 +133,10 @@ All errors use one shape: `{"error": {"code": "meeting_not_found", "message": "�
 | Method | Path | Description |
 | --- | --- | --- |
 | GET | `/api/health` | Health check |
-| GET | `/api/users/me` | Default signed-in user |
+| POST | `/api/auth/signup` | `{name, email, password}` (8+ chars) → `{token, user}`; 409 if the email is taken |
+| POST | `/api/auth/login` | `{email, password}` → `{token, user}`; 401 on bad credentials |
+| POST | `/api/auth/logout` | Revoke the current session token |
+| GET | `/api/users/me` | Signed-in user (401 without a valid token) |
 | POST | `/api/meetings/instant` | `{use_personal_meeting_id?}` → live meeting with code, passcode, invite link |
 | POST | `/api/meetings/schedule` | `{title, description, date, time, duration_minutes, timezone, passcode?, waiting_room_enabled, mute_on_entry}`; start must be in the future |
 | GET | `/api/meetings/upcoming` | Scheduled/live meetings hosted by the user that haven't finished |
@@ -137,7 +154,9 @@ All errors use one shape: `{"error": {"code": "meeting_not_found", "message": "�
 | POST | `/api/meetings/{code}/participants/{id}/admit` | Host only: admit from the waiting room |
 | WS | `/ws/meetings/{code}?participant_id=` | Signaling, presence, chat, reactions, host events |
 
-Host-only endpoints take `{"participant_id": <caller>}` in the body. The server checks that this participant belongs to the meeting and is the host or a co-host. Interactive API docs are served at `http://localhost:8000/docs`.
+**Sign-in required:** `instant`, `schedule`, `upcoming`, `recent`, PATCH, DELETE. Only the owner can edit or cancel a meeting. `join` works for guests; with a valid token, the meeting owner joins as host.
+
+**Host-only endpoints** take `{"participant_id", "participant_token"}` in the body. The server checks the token and that this participant is the meeting's host or a co-host. The WebSocket URL also needs `&token=<participant_token>`. Interactive API docs are served at `http://localhost:8000/docs`.
 
 ## Project structure
 
@@ -189,7 +208,9 @@ cp .env.example .env.local
 npm run dev
 ```
 
-To try a call, click **New Meeting**, copy the invite link, and open it in a second browser window or an incognito window. Each tab keeps its own join session, so the second tab joins as a guest.
+Sign in with the demo account `eaknoor.singh@example.com` / `demo1234`, or create your own account. Seeded demo users all use the password `demo1234`.
+
+To try a call, click **New Meeting**, copy the invite link, and open it in an incognito window. Sign-in is shared by every tab in the same browser profile, so join from an incognito window, as a guest or as a different account.
 
 ### Environment variables
 
@@ -202,6 +223,7 @@ To try a call, click **New Meeting**, copy the invite link, and open it in a sec
 | `CORS_ORIGINS` | backend | – | Extra allowed origins (comma-separated) |
 | `CORS_ORIGIN_REGEX` | backend | – | e.g. `https://zoom-clone-.*\.vercel\.app` for preview deployments |
 | `EMPTY_MEETING_GRACE_SECONDS` | backend | `60` | How long an empty live meeting stays open before it is ended |
+| `SESSION_TTL_DAYS` | backend | `30` | How long a login stays valid |
 
 ### Quality checks
 
@@ -230,7 +252,7 @@ The flows were tested end to end in two headless Chrome instances using Chrome's
    - build command: `pip install -r requirements.txt`
    - start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 2. Set `FRONTEND_URL` to your Vercel URL. Optionally set `CORS_ORIGIN_REGEX` for preview URLs.
-3. **SQLite on free hosting is ephemeral.** The disk is wiped on every deploy or restart, and the seed runs again automatically on boot. To keep data, attach a persistent disk and point `DATABASE_URL` at it (e.g. `sqlite:////var/data/zoom.db`), or use Postgres.
+3. **SQLite on free hosting is ephemeral.** The disk is wiped on every deploy or restart, including when the free instance wakes from sleep, and the seed runs again on boot. **New accounts and meetings are lost when this happens.** To keep data, set `DATABASE_URL` to a Postgres database (Neon, Supabase or Render Postgres). The `postgres://…` URLs these providers give work as-is, because the `psycopg` driver is included.
 4. Run a single instance. WebSocket rooms live in process memory (see Future improvements).
 
 A `Procfile` is included for Railway or Heroku-style hosts.
@@ -247,17 +269,18 @@ Camera and microphone access needs HTTPS, which both platforms provide.
 
 ## Assumptions
 
-- **No authentication.** Every request acts as the seeded default user, Eaknoor Singh (`id = 1`). A tab that *starts* a meeting joins as host (it sends `user_id`). A tab that *joins* by ID or link is a guest. This is decided per browser tab with `sessionStorage`.
+- **No email verification or password reset.** Sign-up uses a simple email format check.
+- **Guests need no account to join**, as in Zoom. The host role and editing meetings require being signed in as the owner.
 - **Mesh WebRTC** connects every participant to every other one, so upload cost grows with each person. It works well for small meetings, around 2–6 people.
 - **STUN only, no TURN.** Peers behind strict or symmetric NATs, or some corporate firewalls, may fail to connect.
 - **Attendees can join a scheduled meeting before the host.** The first join switches its status to `live`.
 - **Empty meetings auto-end** after a 60 s grace period, so a page refresh doesn't end a call.
-- **Removed participants** can't reconnect with the same participant id. Without accounts, they could still rejoin under a new name.
+- **Removed participants** can't reconnect with the same participant id or token. A guest could still rejoin through the link under a new name.
 - **Recording, Team Chat, Whiteboards and Settings** are placeholders.
 
 ## Future improvements
 
-- Real authentication (OAuth/JWT) and per-user dashboards.
+- Email verification, password reset, OAuth (Google/Microsoft) sign-in, and rate limiting on the login endpoints.
 - TURN server (e.g. coturn) for NAT traversal, and an SFU (LiveKit, mediasoup) for larger meetings.
 - Redis pub/sub for the connection manager so the API can scale horizontally.
 - Postgres with Alembic migrations.

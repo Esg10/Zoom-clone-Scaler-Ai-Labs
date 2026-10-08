@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAuth } from "@/hooks/useAuth";
 import { useMediaDevices } from "@/hooks/useMediaDevices";
 import { api, ApiError } from "@/lib/api";
 import { loadJoinPrefs } from "@/lib/joinPrefs";
@@ -17,7 +17,7 @@ import { PreJoin } from "./PreJoin";
 type Phase =
   | { kind: "loading" }
   | { kind: "prejoin"; meeting: Meeting }
-  | { kind: "room"; meeting: Meeting; self: Participant }
+  | { kind: "room"; meeting: Meeting; self: Participant; token: string }
   | { kind: "exit"; reason: ExitReason | "unavailable"; message?: string | null };
 
 const EXIT_COPY: Record<ExitReason | "unavailable", { title: string; message?: string; rejoin?: boolean }> = {
@@ -33,7 +33,7 @@ const EXIT_COPY: Record<ExitReason | "unavailable", { title: string; message?: s
 export function MeetingPage({ code, passcode }: { code: string; passcode: string }) {
   const router = useRouter();
   const toast = useToast();
-  const { user } = useCurrentUser();
+  const { user, loading: authLoading } = useAuth();
   const [prefs] = useState(() => loadJoinPrefs(code));
   // Media lives here (not in the room) so the preview's camera carries into the call.
   const media = useMediaDevices({ audio: !prefs.audioOff, video: !prefs.videoOff });
@@ -68,14 +68,14 @@ export function MeetingPage({ code, passcode }: { code: string; passcode: string
     setJoining(true);
     setJoinError(null);
     try {
-      const { participant, meeting } = await api.joinMeeting(code, {
+      // The server makes us host only if our login token belongs to the meeting owner.
+      const { participant, meeting, participant_token } = await api.joinMeeting(code, {
         display_name: name,
         passcode: passcode || typedPasscode || undefined,
-        user_id: prefs.asHost ? user?.id : undefined,
         is_video_on: media.videoEnabled,
       });
       if (participant.is_muted) await media.setMuted(true); // "mute participants upon entry"
-      setPhase({ kind: "room", meeting, self: participant });
+      setPhase({ kind: "room", meeting, self: participant, token: participant_token });
     } catch (err) {
       setJoinError(err instanceof ApiError ? err.message : "Couldn't join the meeting.");
     } finally {
@@ -130,7 +130,7 @@ export function MeetingPage({ code, passcode }: { code: string; passcode: string
         media={media}
         defaultName={prefs.displayName ?? user?.name ?? ""}
         needsPasscode={!prefs.asHost && !passcode}
-        joining={joining || (Boolean(prefs.asHost) && !user)}
+        joining={joining || authLoading}
         error={joinError}
         onJoin={join}
       />
@@ -141,6 +141,7 @@ export function MeetingPage({ code, passcode }: { code: string; passcode: string
     <MeetingRoom
       meeting={phase.meeting}
       self={phase.self}
+      participantToken={phase.token}
       media={media}
       showInviteOnStart={Boolean(prefs.showInvite)}
       promptShare={Boolean(prefs.shareOnJoin)}

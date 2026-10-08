@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, Video } from "lucide-react";
 import { Popover } from "@/components/ui/Popover";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAuth } from "@/hooks/useAuth";
 import { formatMeetingId } from "@/lib/utils";
 import { ActionButton } from "./ActionButton";
 
@@ -15,7 +15,7 @@ const PREFS_KEY = "zoom-clone:new-meeting-prefs";
 
 /** Orange "New Meeting" tile whose chevron opens Zoom's start options. */
 export function NewMeetingButton({ onStart }: NewMeetingButtonProps) {
-  const { user } = useCurrentUser();
+  const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [starting, setStarting] = useState(false);
   const [prefs, setPrefs] = useState({ withVideo: true, usePersonalId: false });

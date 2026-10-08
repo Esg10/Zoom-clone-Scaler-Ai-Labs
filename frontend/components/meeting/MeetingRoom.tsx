@@ -28,21 +28,31 @@ export type ExitReason = Extract<RoomStatus, "removed" | "ended" | "disconnected
 interface MeetingRoomProps {
   meeting: Meeting;
   self: Participant;
+  /** Secret from the join response; authenticates our socket and host actions. */
+  participantToken: string;
   media: MediaControls;
   showInviteOnStart: boolean;
   promptShare: boolean;
   onExit: (reason: ExitReason, message?: string | null) => void;
 }
 
-export function MeetingRoom({ meeting, self, media, showInviteOnStart, promptShare, onExit }: MeetingRoomProps) {
+export function MeetingRoom({
+  meeting,
+  self,
+  participantToken,
+  media,
+  showInviteOnStart,
+  promptShare,
+  onExit,
+}: MeetingRoomProps) {
   const toast = useToast();
-  const socket = useMeetingSocket(meeting.meeting_code, self.id);
+  const socket = useMeetingSocket(meeting.meeting_code, self.id, participantToken);
   const room = useMeeting(socket);
   const remoteStreams = useWebRTC(socket, media.audioTrack, media.screenTrack ?? media.videoTrack);
   // Open the socket only after every hook above has subscribed to its messages.
   useEffect(() => socket?.connect(), [socket]);
   useRoomMediaSync(socket, media, self.id);
-  const host = useHostActions(meeting.meeting_code, self.id);
+  const host = useHostActions(meeting.meeting_code, self.id, participantToken);
 
   const [view, setView] = useState<ViewMode>("gallery");
   const [panel, setPanel] = useState<PanelKind>(null);

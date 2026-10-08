@@ -2,6 +2,8 @@
 
 Runs automatically on startup when the users table is empty.
 Manual reset:  python -m app.seed --reset
+
+Every demo account uses DEMO_PASSWORD, e.g. eaknoor.singh@example.com / demo1234.
 """
 import sys
 from datetime import datetime, timedelta, timezone
@@ -13,9 +15,11 @@ from sqlalchemy.orm import Session
 
 from app.database import Base, SessionLocal, engine
 from app.models import ChatMessage, Meeting, MeetingStatus, MeetingType, Participant, ParticipantRole, User
+from app.security import hash_password
 from app.services.meeting_service import build_invite_link, generate_passcode, generate_unique_code
 
 SEED_TIMEZONE = "Asia/Kolkata"
+DEMO_PASSWORD = "demo1234"
 
 USERS = [
     ("Eaknoor Singh", "eaknoor.singh@example.com", "#0B5CFF", "4815162342"),
@@ -71,7 +75,7 @@ def _new_meeting(db: Session, host: User, title: str, **fields) -> Meeting:
 
 def _seed_users(db: Session) -> List[User]:
     users = [
-        User(name=name, email=email, avatar_color=color, personal_meeting_id=pmi)
+        User(name=name, email=email, avatar_color=color, personal_meeting_id=pmi, password_hash=hash_password(DEMO_PASSWORD))
         for name, email, color, pmi in USERS
     ]
     db.add_all(users)

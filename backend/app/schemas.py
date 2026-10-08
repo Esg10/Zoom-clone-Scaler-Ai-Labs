@@ -9,6 +9,9 @@ from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validat
 from app.models import MeetingStatus, MeetingType, ParticipantRole
 
 PASSCODE_PATTERN = re.compile(r"^[A-Za-z0-9]{6,10}$")
+# Deliberately simple: "something@something.tld". Real verification would email a link.
+EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+MIN_PASSWORD_LENGTH = 8
 
 
 def _validate_timezone(value: str) -> str:
@@ -42,6 +45,44 @@ class UserOut(ORMModel):
     avatar_color: str
     personal_meeting_id: str
     created_at: dt.datetime
+
+
+# ---------- Auth ----------
+
+class SignupRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    email: str = Field(max_length=255)
+    password: str = Field(min_length=MIN_PASSWORD_LENGTH, max_length=128)
+
+    @field_validator("name")
+    @classmethod
+    def _strip_name(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Name is required")
+        return value.strip()
+
+    @field_validator("email")
+    @classmethod
+    def _normalize_email(cls, value: str) -> str:
+        value = value.strip().lower()
+        if not EMAIL_PATTERN.match(value):
+            raise ValueError("Enter a valid email address")
+        return value
+
+
+class LoginRequest(BaseModel):
+    email: str = Field(max_length=255)
+    password: str = Field(max_length=128)
+
+    @field_validator("email")
+    @classmethod
+    def _normalize_email(cls, value: str) -> str:
+        return value.strip().lower()
+
+
+class AuthResponse(BaseModel):
+    token: str
+    user: UserOut
 
 
 # ---------- Meetings ----------
@@ -127,8 +168,6 @@ class ValidateResponse(BaseModel):
 class JoinRequest(BaseModel):
     display_name: str = Field(min_length=1, max_length=100)
     passcode: Optional[str] = None
-    # Sent only when the signed-in user *starts* their own meeting; guests omit it.
-    user_id: Optional[int] = None
     is_video_on: bool = True
 
     @field_validator("display_name")
@@ -156,12 +195,15 @@ class ParticipantOut(ORMModel):
 class JoinResponse(BaseModel):
     participant: ParticipantOut
     meeting: MeetingOut
+    # Secret for this participant; required by the WebSocket and host actions.
+    participant_token: str
 
 
 class HostActionRequest(BaseModel):
-    """Identifies who performs a host action (there is no auth session)."""
+    """Who performs a host action: the participant id plus its secret token."""
 
     participant_id: int
+    participant_token: str
 
 
 class ChatMessageOut(ORMModel):

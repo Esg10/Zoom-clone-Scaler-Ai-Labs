@@ -2,7 +2,7 @@
 
 import { History, Users } from "lucide-react";
 import { ListSkeleton } from "@/components/ui/Skeleton";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAuth } from "@/hooks/useAuth";
 import { formatDayLabel, formatDuration, formatMeetingId, formatTime, groupByDay, meetingStart } from "@/lib/utils";
 import type { Meeting } from "@/types";
 import { EmptyState } from "./EmptyState";
@@ -50,7 +50,7 @@ export function RecentList({ meetings, loading, grouped = false, limit }: Recent
 }
 
 function RecentRow({ meeting, showDay = false }: { meeting: Meeting; showDay?: boolean }) {
-  const { user } = useCurrentUser();
+  const { user } = useAuth();
   const start = meetingStart(meeting);
   return (
     <article className="flex items-start gap-3 rounded-xl px-3 py-3 hover:bg-zoom-bg">

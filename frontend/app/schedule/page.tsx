@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { RequireAuth } from "@/components/auth/RequireAuth";
 import { Navbar } from "@/components/layout/Navbar";
 import { ScheduleForm } from "@/components/schedule/ScheduleForm";
 
@@ -19,11 +20,13 @@ function SchedulePageContent() {
 
 export default function SchedulePage() {
   return (
-    <div className="min-h-screen">
-      <Navbar />
-      <Suspense>
-        <SchedulePageContent />
-      </Suspense>
-    </div>
+    <RequireAuth>
+      <div className="min-h-screen">
+        <Navbar />
+        <Suspense>
+          <SchedulePageContent />
+        </Suspense>
+      </div>
+    </RequireAuth>
   );
 }

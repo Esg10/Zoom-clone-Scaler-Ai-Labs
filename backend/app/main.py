@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import CORS_ORIGIN_REGEX, CORS_ORIGINS
 from app.database import Base, engine
 from app.errors import register_error_handlers
-from app.routers import meetings, participants, users, ws
+from app.routers import auth, meetings, participants, users, ws
 from app.seed import seed_if_empty
 
 logging.basicConfig(level=logging.INFO)
@@ -34,6 +34,7 @@ app.add_middleware(
 )
 register_error_handlers(app)
 
+app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(meetings.router)
 app.include_router(participants.router)

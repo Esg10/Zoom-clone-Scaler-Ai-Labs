@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { RequireAuth } from "@/components/auth/RequireAuth";
 import { CalendarClock, History, Plus, UserRound } from "lucide-react";
 import { RecentList } from "@/components/dashboard/RecentList";
 import { UpcomingList } from "@/components/dashboard/UpcomingList";
@@ -76,11 +77,13 @@ function MeetingsContent() {
 
 export default function MeetingsPage() {
   return (
-    <div className="min-h-screen">
-      <Navbar />
-      <Suspense>
-        <MeetingsContent />
-      </Suspense>
-    </div>
+    <RequireAuth>
+      <div className="min-h-screen">
+        <Navbar />
+        <Suspense>
+          <MeetingsContent />
+        </Suspense>
+      </div>
+    </RequireAuth>
   );
 }

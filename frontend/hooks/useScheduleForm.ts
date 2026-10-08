@@ -6,7 +6,7 @@ import { useToast } from "@/components/ui/Toast";
 import { api, ApiError } from "@/lib/api";
 import { browserTimeZone, generatePasscode, nextSlot, PASSCODE_PATTERN, zonedParts } from "@/lib/schedule";
 import type { Meeting, ScheduleMeetingInput } from "@/types";
-import { useCurrentUser } from "./useCurrentUser";
+import { useAuth } from "./useAuth";
 
 export interface ScheduleFormValues {
   title: string;
@@ -67,7 +67,7 @@ function validate(values: ScheduleFormValues): ScheduleFormErrors {
 export function useScheduleForm(editCode: string | null) {
   const router = useRouter();
   const toast = useToast();
-  const { user } = useCurrentUser();
+  const { user } = useAuth();
   const [values, setValues] = useState<ScheduleFormValues>(defaults);
   const [errors, setErrors] = useState<ScheduleFormErrors>({});
   // Starts true even for new meetings: defaults depend on the browser (time zone,

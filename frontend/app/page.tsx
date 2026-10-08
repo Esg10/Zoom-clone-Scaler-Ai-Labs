@@ -1,5 +1,6 @@
 "use client";
 
+import { RequireAuth } from "@/components/auth/RequireAuth";
 import { ActionGrid } from "@/components/dashboard/ActionGrid";
 import { ClockBanner } from "@/components/dashboard/ClockBanner";
 import { RecentList } from "@/components/dashboard/RecentList";
@@ -9,6 +10,14 @@ import { Navbar } from "@/components/layout/Navbar";
 import { useMeetingLists } from "@/hooks/useMeetingLists";
 
 export default function DashboardPage() {
+  return (
+    <RequireAuth>
+      <Dashboard />
+    </RequireAuth>
+  );
+}
+
+function Dashboard() {
   const { upcoming, recent, loading, error, refresh } = useMeetingLists();
 
   return (

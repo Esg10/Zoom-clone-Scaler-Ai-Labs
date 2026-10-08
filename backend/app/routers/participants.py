@@ -1,8 +1,12 @@
 """Joining a meeting, listing participants and host moderation controls."""
+from typing import Optional
+
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import optional_user
+from app.models import User
 from app.schemas import HostActionRequest, JoinRequest, JoinResponse, MeetingOut, ParticipantList, ParticipantOut
 from app.services import meeting_service, participant_service, realtime_service
 from app.services.connection_manager import manager
@@ -11,12 +15,14 @@ router = APIRouter(prefix="/api/meetings/{code}", tags=["participants"])
 
 
 @router.post("/join", response_model=JoinResponse, status_code=status.HTTP_201_CREATED)
-def join(code: str, body: JoinRequest, db: Session = Depends(get_db)):
+def join(code: str, body: JoinRequest, db: Session = Depends(get_db), user: Optional[User] = Depends(optional_user)):
+    """Guests may join without an account; the signed-in owner joins as host."""
     meeting = meeting_service.get_meeting(db, code)
-    participant = participant_service.join(db, meeting, body)
+    participant, token = participant_service.join(db, meeting, body, user)
     return JoinResponse(
         participant=ParticipantOut.model_validate(participant),
         meeting=MeetingOut.model_validate(meeting),
+        participant_token=token,
     )
 
 
@@ -31,7 +37,7 @@ def list_participants(code: str, db: Session = Depends(get_db)):
 @router.post("/mute-all")
 async def mute_all(code: str, body: HostActionRequest, db: Session = Depends(get_db)):
     meeting = meeting_service.get_meeting(db, code)
-    participant_service.require_moderator(db, meeting, body.participant_id)
+    participant_service.require_moderator(db, meeting, body)
     muted = participant_service.mute_all(db, meeting, manager.connected_ids(meeting.meeting_code))
     await realtime_service.notify_muted(meeting.meeting_code, muted)
     return {"ok": True, "muted": muted}
@@ -40,7 +46,7 @@ async def mute_all(code: str, body: HostActionRequest, db: Session = Depends(get
 @router.post("/participants/{participant_id}/mute")
 async def mute_one(code: str, participant_id: int, body: HostActionRequest, db: Session = Depends(get_db)):
     meeting = meeting_service.get_meeting(db, code)
-    participant_service.require_moderator(db, meeting, body.participant_id)
+    participant_service.require_moderator(db, meeting, body)
     target = participant_service.get_participant(db, meeting, participant_id)
     muted = participant_service.mute(db, [target])
     await realtime_service.notify_muted(meeting.meeting_code, muted)
@@ -50,7 +56,7 @@ async def mute_one(code: str, participant_id: int, body: HostActionRequest, db: 
 @router.post("/participants/{participant_id}/remove")
 async def remove(code: str, participant_id: int, body: HostActionRequest, db: Session = Depends(get_db)):
     meeting = meeting_service.get_meeting(db, code)
-    actor = participant_service.require_moderator(db, meeting, body.participant_id)
+    actor = participant_service.require_moderator(db, meeting, body)
     target = participant_service.remove(db, meeting, actor, participant_id)
     await realtime_service.notify_removed(db, meeting, target.id)
     return {"ok": True, "removed": target.id}
@@ -60,7 +66,7 @@ async def remove(code: str, participant_id: int, body: HostActionRequest, db: Se
 async def admit(code: str, participant_id: int, body: HostActionRequest, db: Session = Depends(get_db)):
     """Let a participant in from the waiting room."""
     meeting = meeting_service.get_meeting(db, code)
-    participant_service.require_moderator(db, meeting, body.participant_id)
+    participant_service.require_moderator(db, meeting, body)
     target = participant_service.admit(db, meeting, participant_id)
     await realtime_service.admit(db, meeting, target)
     return {"ok": True, "admitted": target.id}
