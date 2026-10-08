@@ -9,14 +9,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useMediaDevices } from "@/hooks/useMediaDevices";
 import { api, ApiError } from "@/lib/api";
 import { loadJoinPrefs } from "@/lib/joinPrefs";
-import type { Meeting, Participant } from "@/types";
+import type { Meeting, MeetingSummary, Participant } from "@/types";
 import { MeetingRoom, type ExitReason } from "./MeetingRoom";
 import { MeetingStatusScreen } from "./MeetingStatusScreen";
 import { PreJoin } from "./PreJoin";
 
 type Phase =
   | { kind: "loading" }
-  | { kind: "prejoin"; meeting: Meeting }
+  | { kind: "prejoin"; meeting: MeetingSummary }
   | { kind: "room"; meeting: Meeting; self: Participant; token: string }
   | { kind: "exit"; reason: ExitReason | "unavailable"; message?: string | null };
 
@@ -40,6 +40,8 @@ export function MeetingPage({ code, passcode }: { code: string; passcode: string
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
+  // Set when the passcode from the link was rejected, so the guest can type one.
+  const [passcodeRejected, setPasscodeRejected] = useState(false);
 
   useEffect(() => {
     api
@@ -71,13 +73,16 @@ export function MeetingPage({ code, passcode }: { code: string; passcode: string
       // The server makes us host only if our login token belongs to the meeting owner.
       const { participant, meeting, participant_token } = await api.joinMeeting(code, {
         display_name: name,
-        passcode: passcode || typedPasscode || undefined,
+        passcode: typedPasscode || passcode || undefined,
         is_video_on: media.videoEnabled,
       });
       if (participant.is_muted) await media.setMuted(true); // "mute participants upon entry"
       setPhase({ kind: "room", meeting, self: participant, token: participant_token });
     } catch (err) {
       setJoinError(err instanceof ApiError ? err.message : "Couldn't join the meeting.");
+      if (err instanceof ApiError && (err.code === "invalid_passcode" || err.code === "passcode_required")) {
+        setPasscodeRejected(true);
+      }
     } finally {
       setJoining(false);
     }
@@ -129,7 +134,8 @@ export function MeetingPage({ code, passcode }: { code: string; passcode: string
         meeting={phase.meeting}
         media={media}
         defaultName={prefs.displayName ?? user?.name ?? ""}
-        needsPasscode={!prefs.asHost && !passcode}
+        // The owner never needs the passcode; guests do unless the link carried a valid one.
+        needsPasscode={user?.id !== phase.meeting.host_id && (!passcode || passcodeRejected)}
         joining={joining || authLoading}
         error={joinError}
         onJoin={join}

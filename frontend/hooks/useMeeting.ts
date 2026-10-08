@@ -109,5 +109,3 @@ export function useMeeting(socket: MeetingSocket | null) {
 
   return { status, statusMessage, participants, waiting, messages, historyCount, sharerId, reactions, send };
 }
-
-export type MeetingState = ReturnType<typeof useMeeting>;

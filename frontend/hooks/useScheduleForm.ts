@@ -83,7 +83,7 @@ export function useScheduleForm(editCode: string | null) {
       return;
     }
     api
-      .getMeeting(editCode)
+      .getMeetingDetails(editCode)
       .then((meeting) => {
         setValues(fromMeeting(meeting));
         setMeetingCode(meeting.meeting_code);

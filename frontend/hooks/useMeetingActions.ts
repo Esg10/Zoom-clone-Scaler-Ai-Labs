@@ -20,7 +20,6 @@ export function useMeetingActions() {
       try {
         const meeting = await api.createInstantMeeting(options.usePersonalId);
         saveJoinPrefs(meeting.meeting_code, {
-          asHost: true,
           displayName: user?.name,
           videoOff: !options.withVideo,
           showInvite: true,
@@ -36,7 +35,7 @@ export function useMeetingActions() {
   /** Host starts one of their own scheduled meetings. */
   const startMeeting = useCallback(
     (meeting: Meeting) => {
-      saveJoinPrefs(meeting.meeting_code, { asHost: true, displayName: user?.name });
+      saveJoinPrefs(meeting.meeting_code, { displayName: user?.name });
       router.push(`/meeting/${meeting.meeting_code}`);
     },
     [router, user],

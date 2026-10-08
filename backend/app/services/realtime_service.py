@@ -133,7 +133,7 @@ async def handle_message(db: Session, code: str, sender: Participant, message: D
 async def _relay_signal(db: Session, code: str, sender: Participant, message: Dict[str, Any]) -> None:
     # The server never inspects SDP/ICE payloads; it only forwards them to the target peer.
     target = message.get("to")
-    if isinstance(target, int):
+    if isinstance(target, int) and manager.is_admitted(code, target):  # never to the waiting room
         await manager.send(code, target, {"type": "signal", "from": sender.id, "data": message.get("data")})
 
 

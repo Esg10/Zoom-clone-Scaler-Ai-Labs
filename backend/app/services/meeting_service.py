@@ -176,12 +176,17 @@ def update_meeting(db: Session, meeting: Meeting, data: MeetingUpdate) -> Meetin
         tz_name = changes.get("timezone") or meeting.timezone
         current_local = meeting.scheduled_start.astimezone(ZoneInfo(tz_name))
         start = to_utc(changes.get("date") or current_local.date(), changes.get("time") or current_local.time(), tz_name)
-        ensure_future(start)
+        if start != meeting.scheduled_start:
+            # Only a *new* start must be in the future, so a meeting that is due
+            # now can still be renamed without moving it.
+            ensure_future(start)
         meeting.scheduled_start, meeting.timezone = start, tz_name
 
-    for field in ("title", "description", "duration_minutes", "waiting_room_enabled", "mute_on_entry"):
-        if field in changes and changes[field] is not None:
+    for field in ("title", "duration_minutes", "waiting_room_enabled", "mute_on_entry"):
+        if changes.get(field) is not None:
             setattr(meeting, field, changes[field])
+    if "description" in changes:
+        meeting.description = (changes["description"] or "").strip() or None  # empty clears it
     if changes.get("passcode"):
         meeting.passcode = changes["passcode"]
         meeting.invite_link = build_invite_link(meeting.meeting_code, meeting.passcode)
@@ -191,8 +196,9 @@ def update_meeting(db: Session, meeting: Meeting, data: MeetingUpdate) -> Meetin
 
 
 def cancel_meeting(db: Session, meeting: Meeting) -> Meeting:
-    if meeting.status in (MeetingStatus.ended, MeetingStatus.cancelled):
-        raise AppError(409, "not_cancellable", f"This meeting is already {meeting.status.value}")
+    if meeting.status != MeetingStatus.scheduled:
+        reason = "in progress; end it instead" if meeting.status == MeetingStatus.live else f"already {meeting.status.value}"
+        raise AppError(409, "not_cancellable", f"This meeting is {reason}")
     meeting.status = MeetingStatus.cancelled
     db.commit()
     return meeting
@@ -232,5 +238,6 @@ def ensure_joinable(meeting: Meeting, passcode: Optional[str], is_host: bool = F
     if not passcode:
         raise AppError(403, "passcode_required", "This meeting requires a passcode.")
     # Constant-time comparison avoids leaking how many characters matched.
-    if not secrets.compare_digest(passcode.strip(), meeting.passcode):
+    # (Compared as bytes: compare_digest rejects non-ASCII strings.)
+    if not secrets.compare_digest(passcode.strip().encode(), meeting.passcode.encode()):
         raise AppError(403, "invalid_passcode", "Incorrect meeting passcode. Please try again.")

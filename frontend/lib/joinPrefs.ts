@@ -1,12 +1,10 @@
 // Per-tab hand-off of join choices from the Join/Start screens to the meeting page.
-// sessionStorage is tab-scoped, so a second tab joining via invite link is a guest.
+// (Name, audio/video choices, show-invite.) Who is host is decided by the server from the login.
 
 export interface JoinPrefs {
   displayName?: string;
   audioOff?: boolean;
   videoOff?: boolean;
-  /** True when the signed-in user is starting their own meeting. */
-  asHost?: boolean;
   /** Show the invite dialog once the room opens (new instant meetings). */
   showInvite?: boolean;
   /** Came from the dashboard "Share Screen" tile: prompt to share after joining. */

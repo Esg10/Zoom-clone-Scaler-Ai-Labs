@@ -13,6 +13,7 @@ from app.schemas import (
     HostActionRequest,
     InstantMeetingCreate,
     MeetingOut,
+    MeetingSummary,
     MeetingUpdate,
     ScheduleMeetingCreate,
     ValidateRequest,
@@ -26,7 +27,7 @@ router = APIRouter(prefix="/api/meetings", tags=["meetings"])
 def owned_meeting(code: str, db: Session = Depends(get_db), user: User = Depends(current_user)) -> Meeting:
     meeting = meeting_service.get_meeting(db, code)
     if meeting.host_id != user.id:
-        raise AppError(403, "not_owner", "Only the meeting host can change this meeting")
+        raise AppError(403, "not_owner", "Only the meeting host can view or change this meeting")
     return meeting
 
 
@@ -54,9 +55,16 @@ def recent(db: Session = Depends(get_db), user: User = Depends(current_user)):
     return meeting_service.list_recent(db, user.id)
 
 
-@router.get("/{code}", response_model=MeetingOut)
+@router.get("/{code}", response_model=MeetingSummary)
 def read_meeting(code: str, db: Session = Depends(get_db)):
+    """Public summary (no passcode or invite link), 404 if the code is unknown."""
     return meeting_service.get_meeting(db, code)
+
+
+@router.get("/{code}/details", response_model=MeetingOut)
+def read_meeting_details(meeting: Meeting = Depends(owned_meeting)):
+    """Full meeting including the passcode; owner only (used by the edit form)."""
+    return meeting
 
 
 @router.post("/{code}/validate", response_model=ValidateResponse)

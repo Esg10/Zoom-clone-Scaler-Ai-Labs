@@ -87,6 +87,21 @@ class AuthResponse(BaseModel):
 
 # ---------- Meetings ----------
 
+class MeetingSummary(ORMModel):
+    """Public view of a meeting: everything a guest may see before proving the passcode."""
+
+    meeting_code: str
+    title: str
+    host_id: int
+    host_name: str
+    type: MeetingType
+    status: MeetingStatus
+    scheduled_start: Optional[dt.datetime]
+    duration_minutes: int
+    timezone: str
+    waiting_room_enabled: bool
+
+
 class MeetingOut(ORMModel):
     id: int
     meeting_code: str

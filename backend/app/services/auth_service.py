@@ -55,7 +55,11 @@ def create_session(db: Session, user: User) -> str:
 
 def user_for_token(db: Session, token: str) -> Optional[User]:
     session = db.scalar(select(AuthSession).where(AuthSession.token_hash == hash_token(token)))
-    if session is None or session.expires_at <= utcnow():
+    if session is None:
+        return None
+    if session.expires_at <= utcnow():
+        db.delete(session)  # tidy up expired sessions as they're encountered
+        db.commit()
         return None
     return session.user
 

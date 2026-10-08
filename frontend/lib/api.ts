@@ -5,8 +5,8 @@ import type {
   JoinInput,
   JoinResponse,
   Meeting,
+  MeetingSummary,
   MeetingUpdateInput,
-  Participant,
   ScheduleMeetingInput,
   User,
   ValidateResponse,
@@ -100,7 +100,10 @@ export const api = {
   scheduleMeeting: (input: ScheduleMeetingInput) => post<Meeting>("/api/meetings/schedule", input),
   getUpcoming: () => request<Meeting[]>("/api/meetings/upcoming"),
   getRecent: () => request<Meeting[]>("/api/meetings/recent"),
-  getMeeting: (code: string) => request<Meeting>(meetingPath(code)),
+  /** Public summary; safe for guests. */
+  getMeeting: (code: string) => request<MeetingSummary>(meetingPath(code)),
+  /** Full details incl. passcode; owner only. */
+  getMeetingDetails: (code: string) => request<Meeting>(`${meetingPath(code)}/details`),
   /** Resolves with the meeting if joinable; otherwise throws ApiError with the reason code. */
   validateMeeting: async (code: string, passcode?: string): Promise<Meeting> => {
     const result = await post<ValidateResponse>(`${meetingPath(code)}/validate`, { passcode: passcode || null });
@@ -113,7 +116,6 @@ export const api = {
   cancelMeeting: (code: string) => request<Meeting>(meetingPath(code), { method: "DELETE" }),
 
   joinMeeting: (code: string, input: JoinInput) => post<JoinResponse>(`${meetingPath(code)}/join`, input),
-  listParticipants: (code: string) => request<{ participants: Participant[] }>(`${meetingPath(code)}/participants`),
 
   // Host controls: `actor` is the participant performing the action.
   endMeeting: (code: string, actor: ParticipantCredentials) => post<Meeting>(`${meetingPath(code)}/end`, actorBody(actor)),

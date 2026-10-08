@@ -3,7 +3,7 @@
 A full-stack clone of the Zoom web app: start instant meetings, schedule meetings, join by meeting ID or invite link, and hold real-time audio/video calls in the browser with chat, reactions, screen sharing, a waiting room and host controls.
 
 - **Frontend:** Next.js 14 (App Router, TypeScript), Tailwind CSS, lucide-react
-- **Backend:** FastAPI, SQLAlchemy 2, Pydantic v2, SQLite
+- **Backend:** FastAPI, SQLAlchemy 2, Pydantic v2, SQLite (Postgres optional via `DATABASE_URL`)
 - **Realtime:** FastAPI WebSockets for signaling, WebRTC (peer-to-peer mesh) for media
 
 **Live demo:** https://zoom-clone-scaler-six.vercel.app (API: https://zoom-clone-scaler-api.onrender.com). The API runs on Render's free plan, so the first request after ~15 minutes idle can take 30–60 s while it wakes up.
@@ -68,12 +68,13 @@ A full-stack clone of the Zoom web app: start instant meetings, schedule meeting
 
 ### How a call is set up
 
-1. `POST /api/meetings/{code}/join` creates a `participant` row and returns its id and role.
-2. The browser opens `WS /ws/meetings/{code}?participant_id=…`. The server replies with `welcome`, which contains everyone currently present plus the chat history, and broadcasts `participant-joined` to the others.
+1. `POST /api/meetings/{code}/join` creates a `participant` row and returns its id, role and a secret `participant_token`.
+2. The browser opens `WS /ws/meetings/{code}?participant_id=…&token=…`. The server replies with `welcome`, which contains everyone currently present plus the chat history, and broadcasts `participant-joined` to the others.
 3. **The newcomer offers to everyone already in the room; existing participants only answer.** This rule means two peers never send offers to each other at the same time ("glare").
 4. Every connection carries exactly two transceivers, audio then video. Mute, camera on/off, device switching and screen sharing all use `RTCRtpSender.replaceTrack()`, so the connection never needs renegotiating.
 5. ICE candidates that arrive before the remote description are queued, then applied.
 6. Mic and camera state changes are sent as `media-state`, saved, and broadcast so every tile shows the right icons.
+7. When leaving (button, or closing the tab), the browser sends `leave` before closing the socket. Some proxies, Render's included, delay a bare WebSocket close by about 10 s, so the explicit message lets others see you leave immediately.
 
 ### WebSocket message types
 
@@ -85,6 +86,7 @@ A full-stack clone of the Zoom web app: start instant meetings, schedule meeting
 | `chat {content}` | `chat`, `reaction` |
 | `reaction {emoji}` | `hand {participant_id, raised_at}` |
 | `hand {raised}` | `muted-by-host`, `removed`, `meeting-ended`, `error` |
+| `leave` | |
 
 Host actions go through REST endpoints, so they can be checked server-side. The REST handler then pushes the resulting event to the room over the sockets.
 
@@ -95,6 +97,7 @@ Host actions go through REST endpoints, so they can be checked server-side. The 
 - **Failed logins** return the same message whether the email or the password is wrong. An unknown email still runs a password check, so response time doesn't reveal which accounts exist.
 - **Who is host** is decided by the server: you join as host only if your login token belongs to the meeting's owner. The browser can't claim the role. The owner can skip the passcode; everyone else, signed in or not, needs it.
 - **Participant tokens:** each join also returns a secret `participant_token`, kept only in memory and stored hashed. The meeting WebSocket and every host action require it. This stops anyone from taking over another person's connection, or faking host actions, by guessing their numeric participant id.
+- **Passcodes stay private:** `GET /api/meetings/{code}` returns only a public summary (title, host, status). The passcode and invite link come back only after the passcode is proven (`validate`, `join`), or to the owner via `/details`. Signaling data is relayed only between admitted participants, never to the waiting room.
 - **Pages:** the dashboard, `/schedule` and `/meetings` redirect signed-out visitors to `/login?next=…`, then return them there after sign-in. `/join`, `/j/…` and `/meeting/…` work for guests.
 
 ## Database schema
@@ -143,11 +146,12 @@ All errors use one shape: `{"error": {"code": "meeting_not_found", "message": "�
 | POST | `/api/meetings/schedule` | `{title, description, date, time, duration_minutes, timezone, passcode?, waiting_room_enabled, mute_on_entry}`; start must be in the future |
 | GET | `/api/meetings/upcoming` | Scheduled/live meetings hosted by the user that haven't finished |
 | GET | `/api/meetings/recent` | Ended meetings the user hosted or attended |
-| GET | `/api/meetings/{code}` | Meeting details (404 if missing) |
+| GET | `/api/meetings/{code}` | Public summary: title, host, status, time; no passcode (404 if missing) |
+| GET | `/api/meetings/{code}/details` | Full meeting including passcode and invite link (owner only) |
 | POST | `/api/meetings/{code}/validate` | `{passcode?}` → `{ok: true, meeting}` or `{ok: false, error: {code, message}}`. Codes: `meeting_not_found`, `meeting_ended`, `meeting_cancelled`, `passcode_required`, `invalid_passcode` |
 | PATCH | `/api/meetings/{code}` | Edit an upcoming scheduled meeting (owner only) |
-| DELETE | `/api/meetings/{code}` | Cancel a meeting (soft delete → `cancelled`) |
-| POST | `/api/meetings/{code}/join` | `{display_name, passcode?, user_id?, is_video_on}` → participant (+ role) and meeting |
+| DELETE | `/api/meetings/{code}` | Cancel an upcoming scheduled meeting (owner only; soft delete → `cancelled`). Live meetings must be ended instead |
+| POST | `/api/meetings/{code}/join` | `{display_name, passcode?, is_video_on}` → `{participant, meeting, participant_token}`. The signed-in owner joins as host without a passcode |
 | GET | `/api/meetings/{code}/participants` | Participants currently connected |
 | POST | `/api/meetings/{code}/end` | Host only: end for everyone |
 | POST | `/api/meetings/{code}/mute-all` | Host only |
@@ -156,9 +160,9 @@ All errors use one shape: `{"error": {"code": "meeting_not_found", "message": "�
 | POST | `/api/meetings/{code}/lower-all-hands` | Host only |
 | POST | `/api/meetings/{code}/participants/{id}/remove` | Host only |
 | POST | `/api/meetings/{code}/participants/{id}/admit` | Host only: admit from the waiting room |
-| WS | `/ws/meetings/{code}?participant_id=` | Signaling, presence, chat, reactions, host events |
+| WS | `/ws/meetings/{code}?participant_id=&token=` | Signaling, presence, chat, reactions, hands, host events |
 
-**Sign-in required:** `instant`, `schedule`, `upcoming`, `recent`, PATCH, DELETE. Only the owner can edit or cancel a meeting. `join` works for guests; with a valid token, the meeting owner joins as host.
+**Sign-in required:** `instant`, `schedule`, `upcoming`, `recent`, `details`, PATCH, DELETE. Only the owner can edit or cancel a meeting. `join` works for guests; with a valid token, the meeting owner joins as host.
 
 **Host-only endpoints** take `{"participant_id", "participant_token"}` in the body. The server checks the token and that this participant is the meeting's host or a co-host. The WebSocket URL also needs `&token=<participant_token>`. Interactive API docs are served at `http://localhost:8000/docs`.
 
@@ -171,15 +175,18 @@ backend/app/
   database.py          engine, SessionLocal, Base, UTCDateTime, get_db dependency
   models.py / schemas.py
   errors.py            AppError + uniform error handlers
-  routers/             meetings, participants, users, ws   (thin)
+  security.py          password hashing, random tokens (stdlib only)
+  dependencies.py      current_user / optional_user from the Bearer token
+  routers/             auth, users, meetings, participants, ws   (thin)
   services/            meeting_service (IDs, passcodes, scheduling, validation)
+                       auth_service (accounts, sessions)
                        participant_service, realtime_service (WS protocol)
-                       connection_manager (sockets per room + waiting lobby)
+                       connection_manager (sockets per room + waiting lobby, hands)
   seed.py
 frontend/
-  app/                 /, /join, /schedule, /meetings, /meeting/[meetingId], /j/[meetingId]
-  components/          layout/, dashboard/, join/, schedule/, meetings/, meeting/, ui/
-  hooks/               useMeeting, useWebRTC, useMediaDevices, useActiveSpeaker, …
+  app/                 /, /login, /signup, /join, /schedule, /meetings, /meeting/[meetingId], /j/[meetingId]
+  components/          auth/, layout/, dashboard/, join/, schedule/, meetings/, meeting/, ui/
+  hooks/               useAuth, useMeeting, useWebRTC, useMediaDevices, useActiveSpeaker, …
   lib/                 api.ts, webrtc.ts (PeerManager), signaling.ts, utils.ts, schedule.ts
   types/               index.ts (mirrors Pydantic schemas), realtime.ts (WS protocol)
 ```
@@ -239,13 +246,17 @@ npm run format
 npm run build
 ```
 
-The flows were tested end to end in two headless Chrome instances using Chrome's fake camera:
+The flows were tested end to end, locally and against the live deployment, with two to four headless Chrome instances using Chrome's fake camera:
 
+- sign up, sign in, sign out, redirects back after sign-in, wrong password
 - two-way video, chat and unread badge, reactions
 - Alt+V propagating to the other peer
+- raise and lower hand, and the order of raised hands
 - mute all, remove, and end for all
 - waiting room admit and mute-on-entry
 - join by link, wrong or unknown passcode errors, edit, and delete
+
+Real microphone audio and active-speaker detection are **not** covered by these runs, because the headless test machine had no microphone access. Check them with a quick call between two devices.
 
 ## Deployment
 
@@ -278,6 +289,7 @@ Camera and microphone access needs HTTPS, which both platforms provide.
 - **Mesh WebRTC** connects every participant to every other one, so upload cost grows with each person. It works well for small meetings, around 2–6 people.
 - **STUN only, no TURN.** Peers behind strict or symmetric NATs, or some corporate firewalls, may fail to connect.
 - **Attendees can join a scheduled meeting before the host.** The first join switches its status to `live`.
+- **If the host leaves without ending the meeting,** it carries on without a host until everyone leaves. There is no automatic host transfer.
 - **Empty meetings auto-end** after a 60 s grace period, so a page refresh doesn't end a call.
 - **Removed participants** can't reconnect with the same participant id or token. A guest could still rejoin through the link under a new name.
 - **Recording, Team Chat, Whiteboards and Settings** are placeholders.

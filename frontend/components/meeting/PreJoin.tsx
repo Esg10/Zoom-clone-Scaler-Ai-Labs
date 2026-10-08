@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import type { MediaControls } from "@/hooks/useMediaDevices";
 import { cn, formatMeetingId } from "@/lib/utils";
-import type { Meeting } from "@/types";
+import type { MeetingSummary } from "@/types";
 
 interface PreJoinProps {
-  meeting: Meeting;
+  meeting: MeetingSummary;
   media: MediaControls;
   defaultName: string;
   needsPasscode: boolean;

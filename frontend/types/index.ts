@@ -35,6 +35,21 @@ export interface Meeting {
   participant_count: number;
 }
 
+/** Public view of a meeting (no passcode or invite link), from GET /api/meetings/{code}. */
+export type MeetingSummary = Pick<
+  Meeting,
+  | "meeting_code"
+  | "title"
+  | "host_id"
+  | "host_name"
+  | "type"
+  | "status"
+  | "scheduled_start"
+  | "duration_minutes"
+  | "timezone"
+  | "waiting_room_enabled"
+>;
+
 export interface ScheduleMeetingInput {
   title: string;
   description?: string | null;

@@ -33,6 +33,8 @@ async def meeting_socket(websocket: WebSocket, code: str, participant_id: int, t
         await realtime_service.on_connect(db, meeting, participant)
         while True:
             message = await websocket.receive_json()
+            if not isinstance(message, dict):
+                continue  # ignore malformed frames instead of dropping the connection
             if message.get("type") == "leave":
                 # Explicit leave: clean up now. Some proxies (e.g. Render's) take
                 # ~10 s to pass on a WebSocket close, so others would see us late.
