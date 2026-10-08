@@ -6,7 +6,7 @@ A full-stack clone of the Zoom web app: start instant meetings, schedule meeting
 - **Backend:** FastAPI, SQLAlchemy 2, Pydantic v2, SQLite (Postgres optional via `DATABASE_URL`)
 - **Realtime:** FastAPI WebSockets for signaling, WebRTC (peer-to-peer mesh) for media
 
-**Live demo:** https://zoom-clone-scaler-six.vercel.app (API: https://zoom-clone-scaler-api.onrender.com). The API runs on Render's free plan, so the first request after ~15 minutes idle can take 30–60 s while it wakes up.
+**Live demo:** https://zoom-clone-scaler-six.vercel.app (API: https://zoom-clone-scaler-api.onrender.com). The API runs on Render's free plan, which normally sleeps after ~15 minutes idle. An [UptimeRobot](https://uptimerobot.com) monitor pings it regularly to keep it awake, so there's no 30–60 s cold start.
 
 ## Screenshots
 
@@ -267,8 +267,9 @@ Real microphone audio and active-speaker detection are **not** covered by these 
    - build command: `pip install -r requirements.txt`
    - start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 2. Set `FRONTEND_URL` to your Vercel URL. Optionally set `CORS_ORIGIN_REGEX` for preview URLs.
-3. **SQLite on free hosting is ephemeral.** The disk is wiped on every deploy or restart, including when the free instance wakes from sleep, and the seed runs again on boot. **New accounts and meetings are lost when this happens.** To keep data, set `DATABASE_URL` to a Postgres database (Neon, Supabase or Render Postgres). The `postgres://…` URLs these providers give work as-is, because the `psycopg` driver is included.
+3. **SQLite on free hosting is ephemeral.** The disk is wiped on every deploy or restart, and the seed runs again on boot. **New accounts and meetings are lost when this happens.** The live demo uses UptimeRobot to stop the free instance from sleeping, which avoids idle restarts but not redeploys. To keep data, set `DATABASE_URL` to a Postgres database (Neon, Supabase or Render Postgres). The `postgres://…` URLs these providers give work as-is, because the `psycopg` driver is included.
 4. Run a single instance. WebSocket rooms live in process memory (see Future improvements).
+5. **Optional: keep the free instance awake.** Add an HTTP monitor (e.g. UptimeRobot) on `https://<your-api>.onrender.com/api/health` at an interval under 15 minutes. One always-on service uses about 744 of the 750 free instance-hours a month.
 
 A `Procfile` is included for Railway or Heroku-style hosts.
 
