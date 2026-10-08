@@ -39,7 +39,8 @@ export type ClientMessage =
   | { type: "screen-share"; active: boolean }
   | { type: "chat"; content: string }
   | { type: "reaction"; emoji: Reaction }
-  | { type: "hand"; raised: boolean };
+  | { type: "hand"; raised: boolean }
+  | { type: "leave" };
 
 export type ServerMessageType = ServerMessage["type"];
 export type ServerMessageOf<T extends ServerMessageType> = Extract<ServerMessage, { type: T }>;

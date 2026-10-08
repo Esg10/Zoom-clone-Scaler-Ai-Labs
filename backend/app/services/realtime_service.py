@@ -7,6 +7,7 @@ Client -> server message types:
     chat          {content}
     reaction      {emoji}
     hand          {raised}                  raise / lower your own hand
+    leave         {}                        leaving now (handled in routers/ws.py)
 
 Server -> client message types:
     welcome, waiting, waiting-room, participant-joined, participant-left,

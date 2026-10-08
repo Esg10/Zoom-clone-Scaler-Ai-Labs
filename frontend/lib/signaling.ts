@@ -49,9 +49,11 @@ export class MeetingSocket {
     else if (!this.ws || this.ws.readyState === WebSocket.CONNECTING) this.outbox.push(message);
   }
 
+  /** Say goodbye explicitly, then close: a bare close can take seconds to reach the server via proxies. */
   close(): void {
     this.closeListeners.clear();
     this.listeners.clear();
+    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify({ type: "leave" }));
     this.ws?.close();
   }
 }

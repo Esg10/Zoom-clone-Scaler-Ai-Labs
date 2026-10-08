@@ -22,7 +22,13 @@ export function useMeetingSocket(code: string, participantId: number, token: str
   useEffect(() => {
     const instance = new MeetingSocket(meetingSocketUrl(code, { id: participantId, token }));
     setSocket(instance);
-    return () => instance.close();
+    // Closing or reloading the tab also leaves the meeting right away.
+    const onPageHide = () => instance.close();
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      instance.close();
+    };
   }, [code, participantId, token]);
   return socket;
 }
