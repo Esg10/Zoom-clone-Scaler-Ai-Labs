@@ -14,7 +14,7 @@ import { MeetingCard } from "./MeetingCard";
 interface UpcomingListProps {
   meetings: Meeting[];
   loading: boolean;
-  onChanged: () => void;
+  onChanged: () => Promise<void> | void;
   /** Group under date headings (Meetings page) instead of a flat list (dashboard). */
   grouped?: boolean;
   limit?: number;
@@ -76,7 +76,8 @@ export function UpcomingList({ meetings, loading, onChanged, grouped = false, li
         confirmLabel="Delete"
         onClose={() => setPendingDelete(null)}
         onConfirm={async () => {
-          if (pendingDelete && (await actions.cancelMeeting(pendingDelete))) onChanged();
+          // Keep the dialog open until the list has refreshed, so the card is gone when it closes.
+          if (pendingDelete && (await actions.cancelMeeting(pendingDelete))) await onChanged();
         }}
       />
     </>
