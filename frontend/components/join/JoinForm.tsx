@@ -76,7 +76,10 @@ export function JoinForm({ shareScreen = false, onCancel }: JoinFormProps) {
         label="Meeting ID or invite link"
         placeholder="Enter meeting ID or invite link"
         value={meetingInput}
-        onChange={(event) => setMeetingInput(event.target.value)}
+        onChange={(event) => {
+          setMeetingInput(event.target.value);
+          setErrors({});
+        }}
         error={errors.meeting ?? (meetingInput && !parsed ? "Enter a valid meeting ID or invite link" : null)}
         hint={meetingHint}
         autoFocus
@@ -87,7 +90,10 @@ export function JoinForm({ shareScreen = false, onCancel }: JoinFormProps) {
           label="Meeting passcode"
           placeholder="Enter meeting passcode"
           value={passcode}
-          onChange={(event) => setPasscode(event.target.value)}
+          onChange={(event) => {
+            setPasscode(event.target.value);
+            setErrors({});
+          }}
           error={errors.passcode}
           autoComplete="off"
         />
