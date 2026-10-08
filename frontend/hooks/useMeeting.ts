@@ -71,6 +71,11 @@ export function useMeeting(socket: MeetingSocket | null) {
         setSharerId(msg.participant_id);
         setParticipants((current) => current.map((p) => ({ ...p, is_sharing: p.id === msg.participant_id })));
       }),
+      socket.on("hand", (msg) =>
+        setParticipants((current) =>
+          current.map((p) => (p.id === msg.participant_id ? { ...p, hand_raised_at: msg.raised_at } : p)),
+        ),
+      ),
       socket.on("chat", (msg) => setMessages((current) => [...current, msg.message])),
       socket.on("muted-by-host", (msg) =>
         setParticipants((current) => current.map((p) => (msg.participant_ids.includes(p.id) ? { ...p, is_muted: true } : p))),

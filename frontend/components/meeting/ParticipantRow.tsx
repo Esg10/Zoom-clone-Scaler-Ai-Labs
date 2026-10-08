@@ -8,6 +8,7 @@ interface ParticipantRowProps {
   isSelf: boolean;
   canModerate: boolean;
   onMute: () => void;
+  onLowerHand: () => void;
   onRemove: () => void;
 }
 
@@ -19,8 +20,9 @@ function roleLabel(participant: RoomParticipant, isSelf: boolean): string {
   return tags.length ? ` (${tags.join(", ")})` : "";
 }
 
-export function ParticipantRow({ participant, isSelf, canModerate, onMute, onRemove }: ParticipantRowProps) {
+export function ParticipantRow({ participant, isSelf, canModerate, onMute, onLowerHand, onRemove }: ParticipantRowProps) {
   const showActions = canModerate && !isSelf;
+  const handRaised = Boolean(participant.hand_raised_at);
   return (
     <li className="group flex items-center gap-3 px-4 py-2 hover:bg-room-hover">
       <Avatar name={participant.display_name} size="sm" />
@@ -28,8 +30,18 @@ export function ParticipantRow({ participant, isSelf, canModerate, onMute, onRem
         {participant.display_name}
         <span className="text-room-muted">{roleLabel(participant, isSelf)}</span>
       </span>
+      {handRaised && (
+        <span role="img" aria-label="Hand raised" className="text-base">
+          ✋
+        </span>
+      )}
       {showActions && (
         <span className="flex gap-1 md:hidden md:group-hover:flex">
+          {handRaised && (
+            <button type="button" onClick={onLowerHand} className="rounded-md bg-room-hover px-2 py-1 text-xs hover:bg-[#444]">
+              Lower Hand
+            </button>
+          )}
           {!participant.is_muted && (
             <button type="button" onClick={onMute} className="rounded-md bg-room-hover px-2 py-1 text-xs hover:bg-[#444]">
               Mute

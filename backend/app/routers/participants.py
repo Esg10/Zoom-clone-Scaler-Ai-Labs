@@ -53,6 +53,23 @@ async def mute_one(code: str, participant_id: int, body: HostActionRequest, db: 
     return {"ok": True, "muted": muted}
 
 
+@router.post("/lower-all-hands")
+async def lower_all_hands(code: str, body: HostActionRequest, db: Session = Depends(get_db)):
+    meeting = meeting_service.get_meeting(db, code)
+    participant_service.require_moderator(db, meeting, body)
+    raised = list(manager.raised_hands.get(meeting.meeting_code, {}).keys())
+    await realtime_service.lower_hands(meeting.meeting_code, raised)
+    return {"ok": True, "lowered": raised}
+
+
+@router.post("/participants/{participant_id}/lower-hand")
+async def lower_hand(code: str, participant_id: int, body: HostActionRequest, db: Session = Depends(get_db)):
+    meeting = meeting_service.get_meeting(db, code)
+    participant_service.require_moderator(db, meeting, body)
+    await realtime_service.lower_hands(meeting.meeting_code, [participant_id])
+    return {"ok": True, "lowered": [participant_id]}
+
+
 @router.post("/participants/{participant_id}/remove")
 async def remove(code: str, participant_id: int, body: HostActionRequest, db: Session = Depends(get_db)):
     meeting = meeting_service.get_meeting(db, code)

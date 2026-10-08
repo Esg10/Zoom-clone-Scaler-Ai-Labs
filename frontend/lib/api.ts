@@ -120,6 +120,9 @@ export const api = {
   muteAll: (code: string, actor: ParticipantCredentials) => post(`${meetingPath(code)}/mute-all`, actorBody(actor)),
   muteParticipant: (code: string, actor: ParticipantCredentials, targetId: number) =>
     post(`${meetingPath(code)}/participants/${targetId}/mute`, actorBody(actor)),
+  lowerHand: (code: string, actor: ParticipantCredentials, targetId: number) =>
+    post(`${meetingPath(code)}/participants/${targetId}/lower-hand`, actorBody(actor)),
+  lowerAllHands: (code: string, actor: ParticipantCredentials) => post(`${meetingPath(code)}/lower-all-hands`, actorBody(actor)),
   admitParticipant: (code: string, actor: ParticipantCredentials, targetId: number) =>
     post(`${meetingPath(code)}/participants/${targetId}/admit`, actorBody(actor)),
   removeParticipant: (code: string, actor: ParticipantCredentials, targetId: number) =>

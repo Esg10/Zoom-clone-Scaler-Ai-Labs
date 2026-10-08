@@ -14,6 +14,7 @@ interface BuildTilesInput {
 /** Combine server participant state with local/remote media into render-ready tiles (me first). */
 export function buildTiles({ self, participants, remoteStreams, media, reactions }: BuildTilesInput): TileData[] {
   const latestReaction = new Map(reactions.map((r) => [r.participantId, r.emoji]));
+  const selfFromServer = participants.find((p) => p.id === self.id);
   const selfTile: TileData = {
     id: self.id,
     name: self.display_name,
@@ -23,6 +24,7 @@ export function buildTiles({ self, participants, remoteStreams, media, reactions
     isSelf: true,
     isHost: self.role === "host",
     isSharing: Boolean(media.screenTrack),
+    handRaised: Boolean(selfFromServer?.hand_raised_at),
     reaction: latestReaction.get(self.id),
   };
   const others = participants
@@ -36,6 +38,7 @@ export function buildTiles({ self, participants, remoteStreams, media, reactions
       isSelf: false,
       isHost: p.role === "host",
       isSharing: p.is_sharing,
+      handRaised: Boolean(p.hand_raised_at),
       reaction: latestReaction.get(p.id),
     }));
   return [selfTile, ...others];

@@ -41,8 +41,9 @@ A full-stack clone of the Zoom web app: start instant meetings, schedule meeting
   - Mute and video toggles, each with a device picker.
   - Screen sharing, which takes the main stage automatically.
   - Reactions, chat with history and unread badge, participants panel, and security info.
-  - Keyboard shortcuts **Alt+A** (mute) and **Alt+V** (video).
-- **Host controls:** mute all, mute one, remove (the removed user sees "You have been removed"), admit or remove people from the waiting room, end the meeting for everyone. Attendees can only leave.
+  - **Raise hand**, in Reactions → Raise Hand or with **Alt+Y**. A ✋ stays on your tile until you or the host lower it. Raised hands go to the top of the participants list in the order they were raised, and the host gets a notification.
+  - Keyboard shortcuts **Alt+A** (mute), **Alt+V** (video) and **Alt+Y** (raise/lower hand).
+- **Host controls:** mute all, mute one, lower a hand or all hands, remove (the removed user sees "You have been removed"), admit or remove people from the waiting room, end the meeting for everyone. Attendees can only leave.
 - **Responsive:** on phones, tiles reflow and the control bar shows the key buttons plus "More".
 
 ## Architecture
@@ -82,7 +83,8 @@ A full-stack clone of the Zoom web app: start instant meetings, schedule meeting
 | `media-state {is_muted, is_video_on}` | `participant-joined / -left / -updated` |
 | `screen-share {active}` | `signal {from, data}`, `screen-share` |
 | `chat {content}` | `chat`, `reaction` |
-| `reaction {emoji}` | `muted-by-host`, `removed`, `meeting-ended`, `error` |
+| `reaction {emoji}` | `hand {participant_id, raised_at}` |
+| `hand {raised}` | `muted-by-host`, `removed`, `meeting-ended`, `error` |
 
 Host actions go through REST endpoints, so they can be checked server-side. The REST handler then pushes the resulting event to the room over the sockets.
 
@@ -150,6 +152,8 @@ All errors use one shape: `{"error": {"code": "meeting_not_found", "message": "�
 | POST | `/api/meetings/{code}/end` | Host only: end for everyone |
 | POST | `/api/meetings/{code}/mute-all` | Host only |
 | POST | `/api/meetings/{code}/participants/{id}/mute` | Host only |
+| POST | `/api/meetings/{code}/participants/{id}/lower-hand` | Host only |
+| POST | `/api/meetings/{code}/lower-all-hands` | Host only |
 | POST | `/api/meetings/{code}/participants/{id}/remove` | Host only |
 | POST | `/api/meetings/{code}/participants/{id}/admit` | Host only: admit from the waiting room |
 | WS | `/ws/meetings/{code}?participant_id=` | Signaling, presence, chat, reactions, host events |
@@ -285,5 +289,5 @@ Camera and microphone access needs HTTPS, which both platforms provide.
 - Redis pub/sub for the connection manager so the API can scale horizontally.
 - Postgres with Alembic migrations.
 - Recurring meetings and calendar (ICS) invites.
-- Recording, breakout rooms, raise hand, virtual backgrounds, and co-host assignment and host transfer.
+- Recording, breakout rooms, virtual backgrounds, and co-host assignment and host transfer.
 - Automated test suites (pytest for services and routers, Playwright for the flows above) in CI.

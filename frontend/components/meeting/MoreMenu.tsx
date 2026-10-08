@@ -10,10 +10,13 @@ interface MoreMenuProps {
   onToggleShare: () => void;
   onRecord: () => void;
   onReaction: (emoji: Reaction) => void;
+  handRaised: boolean;
+  onToggleHand: () => void;
 }
 
 /** Overflow menu; on small screens it also holds the toolbar items that are hidden. */
-export function MoreMenu({ close, isSharing, onInvite, onToggleShare, onRecord, onReaction }: MoreMenuProps) {
+export function MoreMenu(props: MoreMenuProps) {
+  const { close, isSharing, onInvite, onToggleShare, onRecord, onReaction, handRaised, onToggleHand } = props;
   const run = (action: () => void) => () => {
     close();
     action();
@@ -31,13 +34,17 @@ export function MoreMenu({ close, isSharing, onInvite, onToggleShare, onRecord, 
           Record
         </MenuItem>
         <p className="px-3 pt-2 text-xs font-semibold text-room-muted">Reactions</p>
-        <ReactionsPicker onPick={(emoji) => run(() => onReaction(emoji))()} />
+        <ReactionsPicker
+          onPick={(emoji) => run(() => onReaction(emoji))()}
+          handRaised={handRaised}
+          onToggleHand={run(onToggleHand)}
+        />
       </div>
       <div className="mt-1 flex items-start gap-2.5 border-t border-room-border px-3 pb-1 pt-2 text-xs text-room-muted">
         <Keyboard className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
         <span>
           <kbd className="font-sans text-white">Alt+A</kbd> mute / unmute · <kbd className="font-sans text-white">Alt+V</kbd>{" "}
-          start / stop video
+          start / stop video · <kbd className="font-sans text-white">Alt+Y</kbd> raise / lower hand
         </span>
       </div>
     </>

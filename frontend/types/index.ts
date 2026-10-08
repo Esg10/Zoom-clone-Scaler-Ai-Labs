@@ -72,6 +72,8 @@ export interface Participant {
 /** Participant as seen inside a live room (adds ephemeral realtime state). */
 export interface RoomParticipant extends Participant {
   is_sharing: boolean;
+  /** ISO time the hand was raised (orders the "raised hands" queue), or null. */
+  hand_raised_at: string | null;
 }
 
 export interface JoinInput {

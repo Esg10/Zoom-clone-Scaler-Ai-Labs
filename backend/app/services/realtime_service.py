@@ -6,19 +6,20 @@ Client -> server message types:
     screen-share  {active}
     chat          {content}
     reaction      {emoji}
+    hand          {raised}                  raise / lower your own hand
 
 Server -> client message types:
     welcome, waiting, waiting-room, participant-joined, participant-left,
-    participant-updated, signal, screen-share, chat, reaction, muted-by-host,
-    removed, meeting-ended, error
+    participant-updated, signal, screen-share, chat, reaction, hand,
+    muted-by-host, removed, meeting-ended, error
 """
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
 from app.config import EMPTY_MEETING_GRACE_SECONDS
-from app.database import SessionLocal
+from app.database import SessionLocal, utcnow
 from app.errors import AppError
 from app.models import Meeting, MeetingStatus, Participant
 from app.schemas import ChatMessageOut, MeetingOut, ParticipantOut
@@ -31,10 +32,22 @@ MAX_CHAT_LENGTH = 2000
 ALLOWED_REACTIONS = {"👏", "👍", "❤️", "😂", "😮", "🎉"}
 
 
+def _hand_raised_at(code: str, participant_id: int) -> Optional[str]:
+    raised_at = manager.raised_hands.get(code, {}).get(participant_id)
+    return raised_at.isoformat() if raised_at else None
+
+
 def participant_payload(code: str, participant: Participant) -> Dict[str, Any]:
     data = ParticipantOut.model_validate(participant).model_dump(mode="json")
     data["is_sharing"] = manager.screen_sharer.get(code) == participant.id
+    data["hand_raised_at"] = _hand_raised_at(code, participant.id)
     return data
+
+
+async def broadcast_hand(code: str, participant_id: int) -> None:
+    await manager.broadcast(
+        code, {"type": "hand", "participant_id": participant_id, "raised_at": _hand_raised_at(code, participant_id)}
+    )
 
 
 def chat_payload(message) -> Dict[str, Any]:
@@ -149,16 +162,34 @@ async def _reaction(db: Session, code: str, sender: Participant, message: Dict[s
         await manager.broadcast(code, {"type": "reaction", "participant_id": sender.id, "emoji": emoji})
 
 
+async def _hand(db: Session, code: str, sender: Participant, message: Dict[str, Any]) -> None:
+    hands = manager.raised_hands[code]
+    if message.get("raised"):
+        hands.setdefault(sender.id, utcnow())  # keep the original time so the queue order is fair
+    else:
+        hands.pop(sender.id, None)
+    await broadcast_hand(code, sender.id)
+
+
 _HANDLERS = {
     "signal": _relay_signal,
     "media-state": _media_state,
     "screen-share": _screen_share,
     "chat": _chat,
     "reaction": _reaction,
+    "hand": _hand,
 }
 
 
 # ---------- Server-initiated events (called from REST host controls) ----------
+
+async def lower_hands(code: str, participant_ids: List[int]) -> None:
+    """Host lowers one or more hands."""
+    hands = manager.raised_hands.get(code, {})
+    for participant_id in participant_ids:
+        if hands.pop(participant_id, None) is not None:
+            await broadcast_hand(code, participant_id)
+
 
 async def notify_muted(code: str, participant_ids: List[int]) -> None:
     await manager.broadcast(code, {"type": "muted-by-host", "participant_ids": participant_ids})

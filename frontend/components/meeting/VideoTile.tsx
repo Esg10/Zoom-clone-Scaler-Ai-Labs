@@ -14,6 +14,7 @@ export interface TileData {
   isSelf: boolean;
   isHost: boolean;
   isSharing: boolean;
+  handRaised: boolean;
   reaction?: string;
 }
 
@@ -69,6 +70,16 @@ export function VideoTile({ tile, speaking, variant = "grid", style, className }
         {tile.isSharing && <MonitorUp className="h-3.5 w-3.5 shrink-0 text-green-400" aria-label="Sharing screen" />}
         <span className="truncate">{tile.name}</span>
       </div>
+
+      {tile.handRaised && (
+        <span
+          role="img"
+          aria-label="Hand raised"
+          className="absolute left-2 top-2 flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400 text-lg shadow-md"
+        >
+          ✋
+        </span>
+      )}
 
       {tile.reaction && (
         <span key={tile.reaction} className="absolute right-2 top-2 animate-slide-up text-3xl drop-shadow" aria-label="Reaction">

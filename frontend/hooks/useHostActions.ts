@@ -21,6 +21,8 @@ export function useHostActions(code: string, selfId: number, token: string) {
     return {
       muteAll: () => run(() => api.muteAll(code, actor), "Everyone has been muted"),
       mute: (id: number) => run(() => api.muteParticipant(code, actor, id)),
+      lowerHand: (id: number) => run(() => api.lowerHand(code, actor, id)),
+      lowerAllHands: () => run(() => api.lowerAllHands(code, actor), "All hands lowered"),
       admit: (id: number) => run(() => api.admitParticipant(code, actor, id)),
       remove: (id: number) => run(() => api.removeParticipant(code, actor, id), "Participant removed"),
       endForAll: () => run(() => api.endMeeting(code, actor)),

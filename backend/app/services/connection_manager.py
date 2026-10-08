@@ -7,6 +7,7 @@ Media itself flows peer-to-peer over WebRTC and never touches the server.
 import asyncio
 import logging
 from collections import defaultdict
+from datetime import datetime
 from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from fastapi import WebSocket
@@ -23,6 +24,8 @@ class ConnectionManager:
         # neither receive room broadcasts nor count as present.
         self.lobby: Dict[str, Dict[int, WebSocket]] = defaultdict(dict)
         self.screen_sharer: Dict[str, int] = {}
+        # participant id -> when they raised their hand (orders the participants list).
+        self.raised_hands: Dict[str, Dict[int, datetime]] = defaultdict(dict)
         self._auto_end_tasks: Dict[str, asyncio.Task] = {}
 
     async def connect(self, code: str, participant_id: int, websocket: WebSocket, waiting: bool = False) -> None:
@@ -44,6 +47,7 @@ class ConnectionManager:
                     registry.pop(code, None)
                 if self.screen_sharer.get(code) == participant_id:
                     del self.screen_sharer[code]
+                self.raised_hands.get(code, {}).pop(participant_id, None)  # leaving lowers your hand
                 return True
         return False
 
@@ -90,6 +94,7 @@ class ConnectionManager:
     async def close_room(self, code: str, message: Message) -> None:
         sockets = list(self.rooms.pop(code, {}).values()) + list(self.lobby.pop(code, {}).values())
         self.screen_sharer.pop(code, None)
+        self.raised_hands.pop(code, None)
         self._cancel_auto_end(code)
         for websocket in sockets:
             await self._safe_send(websocket, message)

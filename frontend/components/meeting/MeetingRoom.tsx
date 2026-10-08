@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { useActiveSpeaker } from "@/hooks/useActiveSpeaker";
 import { useHostActions } from "@/hooks/useHostActions";
+import { useHandRaiseNotices } from "@/hooks/useHandRaiseNotices";
 import { useAltShortcuts } from "@/hooks/useKeyboardShortcuts";
 import type { MediaControls } from "@/hooks/useMediaDevices";
 import { useMeeting, useMeetingSocket, type RoomStatus } from "@/hooks/useMeeting";
@@ -86,9 +87,14 @@ export function MeetingRoom({
   }, [panel, room.messages.length, room.historyCount]);
   const unread = panel === "chat" ? 0 : room.messages.slice(seenMessages).filter((m) => m.participant_id !== self.id).length;
 
+  const handRaised = Boolean(room.participants.find((p) => p.id === self.id)?.hand_raised_at);
+  const toggleHand = () => room.send({ type: "hand", raised: !handRaised });
+  useHandRaiseNotices(socket, room.participants, isHost, self.id);
+
   useAltShortcuts({
     KeyA: () => void media.setMuted(media.audioEnabled),
     KeyV: () => void media.setVideoOn(!media.videoEnabled),
+    KeyY: toggleHand,
   });
 
   const toggleShare = async () => {
@@ -126,7 +132,7 @@ export function MeetingRoom({
 
         {panel === "participants" && (
           <ParticipantsPanel
-            participants={room.participants.length ? room.participants : [{ ...me, is_sharing: false }]}
+            participants={room.participants.length ? room.participants : [{ hand_raised_at: null, ...me, is_sharing: false }]}
             waiting={room.waiting}
             selfId={self.id}
             canModerate={isHost}
@@ -134,6 +140,8 @@ export function MeetingRoom({
             onInvite={() => setInviteOpen(true)}
             onMuteAll={host.muteAll}
             onMute={host.mute}
+            onLowerHand={host.lowerHand}
+            onLowerAllHands={host.lowerAllHands}
             onAdmit={host.admit}
             onRemove={host.remove}
           />
@@ -159,6 +167,8 @@ export function MeetingRoom({
         onToggleShare={toggleShare}
         onRecord={() => toast("Recording isn't available in this demo")}
         onReaction={(emoji) => room.send({ type: "reaction", emoji })}
+        handRaised={handRaised}
+        onToggleHand={toggleHand}
         onInvite={() => setInviteOpen(true)}
         onLeave={() => onExit("left")}
         onEndForAll={host.endForAll}

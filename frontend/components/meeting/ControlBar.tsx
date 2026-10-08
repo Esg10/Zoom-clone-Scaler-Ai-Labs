@@ -38,6 +38,8 @@ interface ControlBarProps {
   onToggleShare: () => void;
   onRecord: () => void;
   onReaction: (emoji: Reaction) => void;
+  handRaised: boolean;
+  onToggleHand: () => void;
   onInvite: () => void;
   onLeave: () => void;
   onEndForAll: () => Promise<void>;
@@ -151,6 +153,11 @@ export function ControlBar(props: ControlBarProps) {
               setPopover(null);
               props.onReaction(emoji);
             }}
+            handRaised={props.handRaised}
+            onToggleHand={() => {
+              setPopover(null);
+              props.onToggleHand();
+            }}
           />,
           "hidden md:block",
         )}
@@ -164,6 +171,8 @@ export function ControlBar(props: ControlBarProps) {
             onToggleShare={props.onToggleShare}
             onRecord={props.onRecord}
             onReaction={props.onReaction}
+            handRaised={props.handRaised}
+            onToggleHand={props.onToggleHand}
           />,
         )}
       </div>
