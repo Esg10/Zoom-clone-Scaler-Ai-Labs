@@ -4,20 +4,23 @@ import { cn } from "@/lib/utils";
 
 interface ActionButtonProps {
   icon: LucideIcon;
-  label: ReactNode;
+  name: string;
+  /** Custom label content (e.g. with a dropdown); defaults to `name`. */
+  label?: ReactNode;
   color: "orange" | "blue";
   onClick: () => void;
   disabled?: boolean;
 }
 
 /** Large rounded-square tile with the label underneath (Zoom home screen). */
-export function ActionButton({ icon: Icon, label, color, onClick, disabled }: ActionButtonProps) {
+export function ActionButton({ icon: Icon, name, label = name, color, onClick, disabled }: ActionButtonProps) {
   return (
     <div className="flex flex-col items-center gap-2.5">
       <button
         type="button"
         onClick={onClick}
         disabled={disabled}
+        aria-label={name}
         className={cn(
           "flex h-16 w-16 items-center justify-center rounded-[20px] text-white shadow-sm transition-all sm:h-20 sm:w-20 sm:rounded-3xl",
           "hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 disabled:opacity-60",

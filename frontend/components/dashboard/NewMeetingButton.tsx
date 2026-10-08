@@ -48,6 +48,7 @@ export function NewMeetingButton({ onStart }: NewMeetingButtonProps) {
   return (
     <ActionButton
         icon={Video}
+        name="New Meeting"
         color="orange"
         onClick={start}
         disabled={starting}
